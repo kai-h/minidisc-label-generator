@@ -125,7 +125,12 @@ function sheetCopies() {
       disc: labelAt("disc", discX, discY),
       case: labelAt("case", caseX, caseY),
       spine: rotateSpines
-        ? { ...labelAt("spine", caseX + labelSizes.case.width + 1.8, caseY), width: labelSizes.spine.height, height: labelSizes.spine.width, rotated: true }
+        ? {
+            ...labelAt("spine", caseX + labelSizes.case.width + BLEED + 0.8, caseY),
+            width: labelSizes.spine.height,
+            height: labelSizes.spine.width,
+            rotated: true,
+          }
         : { ...labelAt("spine", caseX + 6, caseY + 52), rotated: false },
     };
   });
@@ -265,16 +270,10 @@ function renderSpine(label, release) {
 }
 
 function renderSheet() {
-  const copies = sheetCopies()
-    .map((copy, index) => {
-      const release = releaseForCopy(index);
-      return `
-        ${renderCase(copy.case, index, release)}
-        ${renderSpine(copy.spine, release)}
-        ${renderDisc(copy.disc, index, release)}
-      `;
-    })
-    .join("");
+  const copies = sheetCopies();
+  const cases = copies.map((copy, index) => renderCase(copy.case, index, releaseForCopy(index))).join("");
+  const spines = copies.map((copy, index) => renderSpine(copy.spine, releaseForCopy(index))).join("");
+  const discs = copies.map((copy, index) => renderDisc(copy.disc, index, releaseForCopy(index))).join("");
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.width}mm" height="${PAGE.height}mm" viewBox="0 0 ${PAGE.width} ${PAGE.height}">
     <style>
@@ -282,7 +281,9 @@ function renderSheet() {
       text { dominant-baseline: alphabetic; }
     </style>
     <rect width="${PAGE.width}" height="${PAGE.height}" fill="#fff" />
-    ${copies}
+    ${cases}
+    ${spines}
+    ${discs}
   </svg>`;
   sheetHost.innerHTML = svg;
   return svg;
