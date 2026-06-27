@@ -16,6 +16,13 @@ const state = {
   labels: [],
   selectedIndex: 0,
   isSyncingControls: false,
+  logo: {
+    style: "auto",
+    corner: "bottom-right",
+    disc: true,
+    case: true,
+    spine: false,
+  },
 };
 
 const builtInLogos = {
@@ -27,6 +34,8 @@ const controls = {};
 document.querySelectorAll("input, select, textarea").forEach((el) => {
   controls[el.id] = el;
 });
+
+const LOGO_CONTROL_IDS = new Set(["logo-style", "logo-corner", "logo-disc", "logo-case", "logo-spine"]);
 
 const sheetHost = document.getElementById("sheet-host");
 
@@ -63,11 +72,6 @@ function currentLabelFromControls() {
     tracks: textLines(controls.tracks.value),
     spineAuto: controls["spine-auto"].checked,
     spineFreeform: controls["spine-freeform"].value,
-    logoStyle: controls["logo-style"].value,
-    logoCorner: controls["logo-corner"].value,
-    logoDisc: controls["logo-disc"].checked,
-    logoCase: controls["logo-case"].checked,
-    logoSpine: controls["logo-spine"].checked,
     discImage: state.labels[state.selectedIndex]?.discImage || "",
     caseImage: state.labels[state.selectedIndex]?.caseImage || "",
   };
@@ -90,14 +94,22 @@ function createLabel(overrides = {}) {
     tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
     spineAuto: true,
     spineFreeform: "BLUE HOUR : MIKA VALE",
-    logoStyle: "auto",
-    logoCorner: "bottom-right",
-    logoDisc: true,
-    logoCase: true,
-    logoSpine: false,
     discImage: "",
     caseImage: "",
     ...overrides,
+  };
+}
+
+function syncLogoSettings() {
+  if (controls["logo-corner"].value === "top-left") {
+    controls["logo-corner"].value = "bottom-right";
+  }
+  state.logo = {
+    style: controls["logo-style"].value,
+    corner: controls["logo-corner"].value,
+    disc: controls["logo-disc"].checked,
+    case: controls["logo-case"].checked,
+    spine: controls["logo-spine"].checked,
   };
 }
 
@@ -131,11 +143,6 @@ function syncLabelControls() {
   controls.tracks.value = labelConfig.tracks.join("\n");
   controls["spine-auto"].checked = labelConfig.spineAuto;
   controls["spine-freeform"].value = labelConfig.spineFreeform;
-  controls["logo-style"].value = labelConfig.logoStyle;
-  controls["logo-corner"].value = labelConfig.logoCorner;
-  controls["logo-disc"].checked = labelConfig.logoDisc;
-  controls["logo-case"].checked = labelConfig.logoCase;
-  controls["logo-spine"].checked = labelConfig.logoSpine;
   controls["disc-image"].value = "";
   controls["case-image"].value = "";
   state.isSyncingControls = false;
@@ -275,8 +282,12 @@ function colorLuminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+function logoEnabled(placement) {
+  return Boolean(state.logo[placement]);
+}
+
 function logoHref(placement, labelConfig) {
-  const style = labelConfig.logoStyle;
+  const style = state.logo.style;
   if (style === "none") return "";
   if (style === "black" || style === "white") return builtInLogos[style];
 
@@ -286,16 +297,11 @@ function logoHref(placement, labelConfig) {
 
 function logoUse(label, placement, labelConfig) {
   const href = logoHref(placement, labelConfig);
-  const enabled = {
-    disc: labelConfig.logoDisc,
-    case: labelConfig.logoCase,
-    spine: labelConfig.logoSpine,
-  };
-  if (!href || !enabled[placement]) return "";
+  if (!href || !logoEnabled(placement)) return "";
   const width = placement === "spine" ? 10 : 12;
   const height = placement === "spine" ? 2.3 : 5;
   const margin = placement === "spine" ? 0.6 : 1.2;
-  const corner = labelConfig.logoCorner;
+  const corner = placement === "disc" && state.logo.corner === "bottom-left" ? "bottom-right" : state.logo.corner;
   const x = corner.endsWith("left") ? label.x + margin : label.x + label.width - width - margin;
   const y = corner.startsWith("top") ? label.y + margin : label.y + label.height - height - margin;
   return `<image href="${href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
@@ -536,13 +542,21 @@ document.getElementById("delete-label").addEventListener("click", () => {
 document.querySelectorAll("input, select, textarea").forEach((el) => {
   if (el.type === "file" || el.id === "selected-label") return;
   el.addEventListener("input", () => {
-    saveSelectedLabel();
-    syncLabelPicker();
+    if (LOGO_CONTROL_IDS.has(el.id)) {
+      syncLogoSettings();
+    } else {
+      saveSelectedLabel();
+      syncLabelPicker();
+    }
     renderSheet();
   });
   el.addEventListener("change", () => {
-    saveSelectedLabel();
-    syncLabelPicker();
+    if (LOGO_CONTROL_IDS.has(el.id)) {
+      syncLogoSettings();
+    } else {
+      saveSelectedLabel();
+      syncLabelPicker();
+    }
     renderSheet();
   });
 });
@@ -587,6 +601,7 @@ state.labels = [
     tracks: ["01 Late Static", "02 Soft Error", "03 Return Path", "04 Wake"],
   }),
 ];
+syncLogoSettings();
 syncLabelPicker();
 syncLabelControls();
 syncSheetMode();
