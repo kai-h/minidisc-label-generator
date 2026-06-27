@@ -78,11 +78,11 @@ function fileToDataUrl(file) {
 
 function chamferPath({ x, y, width, height, chamfer }) {
   return [
-    `M ${x} ${y}`,
-    `H ${x + width - chamfer}`,
-    `L ${x + width} ${y + chamfer}`,
+    `M ${x + chamfer} ${y}`,
+    `H ${x + width}`,
     `V ${y + height}`,
     `H ${x}`,
+    `V ${y + chamfer}`,
     "Z",
   ].join(" ");
 }
@@ -151,8 +151,8 @@ function cropMarks(label, includeChamfer = false) {
     .join("");
 
   const chamfer = includeChamfer
-    ? `<line x1="${label.x + label.width - label.chamfer}" y1="${label.y}" x2="${label.x + label.width}" y2="${label.y + label.chamfer}" />
-       <line x1="${label.x + label.width - label.chamfer - 2.2}" y1="${label.y + 2.2}" x2="${label.x + label.width - label.chamfer - 0.5}" y2="${label.y + 0.5}" />`
+    ? `<line x1="${label.x}" y1="${label.y + label.chamfer}" x2="${label.x + label.chamfer}" y2="${label.y}" />
+       <line x1="${label.x + label.chamfer + 0.5}" y1="${label.y + 0.5}" x2="${label.x + label.chamfer + 2.2}" y2="${label.y + 2.2}" />`
     : "";
 
   return `<g class="crop-marks">${lines}${chamfer}</g>`;
