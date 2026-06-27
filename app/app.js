@@ -1,0 +1,347 @@
+const PT_TO_MM = 0.352777778;
+const PAGE = { width: 210, height: 297 };
+const BLEED = 2;
+const CROP_GAP = 2;
+const CROP_LEN = 6;
+const CROP_STROKE = 0.25 * PT_TO_MM;
+
+const labelSizes = {
+  disc: { width: 35.7, height: 52.7, chamfer: 1.5 },
+  spine: { width: 59, height: 3.5 },
+  case: { width: 71, height: 52 },
+};
+
+const state = {
+  discImage: "",
+  caseImage: "",
+  logoHref: "",
+};
+
+const controls = {};
+document.querySelectorAll("input, select, textarea").forEach((el) => {
+  controls[el.id] = el;
+});
+
+const sheetHost = document.getElementById("sheet-host");
+
+const escapeXml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+const fontStack = () => `"'${escapeXml(controls.font.value)}', Arial, sans-serif"`;
+
+function textLines(value) {
+  return String(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function currentRelease() {
+  return {
+    album: controls.album.value,
+    artist: controls.artist.value,
+    year: controls.year.value,
+  };
+}
+
+function multipleReleases() {
+  const releases = textLines(controls["release-list"].value).map((line) => {
+    const [album = "", artist = "", year = ""] = line.split("|").map((part) => part.trim());
+    return { album, artist, year };
+  });
+
+  return releases.length ? releases : [currentRelease()];
+}
+
+function releaseForCopy(index) {
+  if (controls["sheet-mode"].value !== "multiple") return currentRelease();
+  const releases = multipleReleases();
+  return releases[index % releases.length];
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve("");
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function fileToText(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve("");
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsText(file);
+  });
+}
+
+function chamferPath({ x, y, width, height, chamfer }) {
+  return [
+    `M ${x} ${y}`,
+    `H ${x + width - chamfer}`,
+    `L ${x + width} ${y + chamfer}`,
+    `V ${y + height}`,
+    `H ${x}`,
+    "Z",
+  ].join(" ");
+}
+
+function bleedBox(label) {
+  return {
+    x: label.x - BLEED,
+    y: label.y - BLEED,
+    width: label.width + BLEED * 2,
+    height: label.height + BLEED * 2,
+  };
+}
+
+function labelAt(kind, x, y) {
+  return { ...labelSizes[kind], x, y };
+}
+
+function sheetCopies() {
+  const count = Number(controls.copies.value);
+  const rotateSpines = controls["spine-orientation"].value === "rotated";
+  const caseXs = [10, 86];
+  const caseYs = rotateSpines ? [8, 62, 116, 170] : [8, 64, 120, 176];
+  const discMainYs = [8, 64, 120, 176];
+  const discBottomXs = [10, 50, 90, 130];
+
+  return Array.from({ length: count }, (_, index) => {
+    const caseCol = index % 2;
+    const caseRow = Math.floor(index / 2);
+    const caseX = caseXs[caseCol];
+    const caseY = caseYs[caseRow];
+    const discX = index < 4 ? 166 : discBottomXs[index - 4];
+    const discY = index < 4 ? discMainYs[index] : 236;
+
+    return {
+      disc: labelAt("disc", discX, discY),
+      case: labelAt("case", caseX, caseY),
+      spine: rotateSpines
+        ? { ...labelAt("spine", caseX + labelSizes.case.width + 1.8, caseY), width: labelSizes.spine.height, height: labelSizes.spine.width, rotated: true }
+        : { ...labelAt("spine", caseX + 6, caseY + 52), rotated: false },
+    };
+  });
+}
+
+function cropMarks(label, includeChamfer = false) {
+  const left = label.x;
+  const right = label.x + label.width;
+  const top = label.y;
+  const bottom = label.y + label.height;
+  const marks = [
+    [left, top - CROP_GAP, left, top - CROP_GAP - CROP_LEN],
+    [left, bottom + CROP_GAP, left, bottom + CROP_GAP + CROP_LEN],
+    [right, top - CROP_GAP, right, top - CROP_GAP - CROP_LEN],
+    [right, bottom + CROP_GAP, right, bottom + CROP_GAP + CROP_LEN],
+    [left - CROP_GAP, top, left - CROP_GAP - CROP_LEN, top],
+    [right + CROP_GAP, top, right + CROP_GAP + CROP_LEN, top],
+    [left - CROP_GAP, bottom, left - CROP_GAP - CROP_LEN, bottom],
+    [right + CROP_GAP, bottom, right + CROP_GAP + CROP_LEN, bottom],
+  ];
+  const lines = marks
+    .map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`)
+    .join("");
+
+  const chamfer = includeChamfer
+    ? `<line x1="${label.x + label.width - label.chamfer}" y1="${label.y}" x2="${label.x + label.width}" y2="${label.y + label.chamfer}" />
+       <line x1="${label.x + label.width - label.chamfer - 2.2}" y1="${label.y + 2.2}" x2="${label.x + label.width - label.chamfer - 0.5}" y2="${label.y + 0.5}" />`
+    : "";
+
+  return `<g class="crop-marks">${lines}${chamfer}</g>`;
+}
+
+function imageFill(href, box, mode = "cover") {
+  if (!href) return "";
+  const preserve = mode === "contain" ? "xMidYMid meet" : "xMidYMid slice";
+  return `<image href="${href}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" preserveAspectRatio="${preserve}" />`;
+}
+
+function logoUse(label, placement) {
+  if (!state.logoHref || !controls[`logo-${placement}`].checked) return "";
+  const width = placement === "spine" ? 10 : 12;
+  const height = placement === "spine" ? 2.3 : 5;
+  const x = label.x + label.width - width - 2;
+  const y = placement === "spine" ? label.y + 0.55 : label.y + label.height - height - 2;
+  return `<image href="${state.logoHref}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
+}
+
+function renderDisc(label, copyIndex, release) {
+  const clipId = `disc-clip-${copyIndex}`;
+  const path = chamferPath(label);
+  const bg = controls["disc-bg"].value;
+  const text = controls["disc-text"].value;
+  const layout = controls["disc-layout"].value;
+  const album = escapeXml(release.album);
+  const artist = escapeXml(release.artist);
+  const year = escapeXml(release.year);
+  let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
+    <path d="${path}" fill="${bg}" />`;
+
+  if (layout === "full" && state.discImage) {
+    body += `<g clip-path="url(#${clipId})">${imageFill(state.discImage, bleedBox(label))}</g>`;
+  } else if (layout === "square" && state.discImage) {
+    const size = 31.5;
+    const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
+    body += `<g clip-path="url(#${clipId})">${imageFill(state.discImage, img)}</g>`;
+  }
+
+  if (layout !== "full") {
+    body += `<text x="${label.x + 2.2}" y="${label.y + 5.7}" fill="${text}" font-family=${fontStack()} font-size="3.4" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 6.2}" fill="${text}" font-family=${fontStack()} font-size="2.6" font-weight="600">${artist}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 2.6}" fill="${text}" font-family=${fontStack()} font-size="2.2">${year}</text>`;
+  }
+
+  body += logoUse(label, "disc");
+  body += `<path d="${path}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />`;
+
+  return `<clipPath id="${clipId}"><path d="${path}" /></clipPath>${cropMarks(label, true)}<g>${body}</g>`;
+}
+
+function renderCase(label, copyIndex, release) {
+  const clipId = `case-clip-${copyIndex}`;
+  const bg = controls["case-bg"].value;
+  const text = controls["case-text"].value;
+  const layout = controls["case-layout"].value;
+  const album = escapeXml(release.album);
+  const artist = escapeXml(release.artist);
+  const year = escapeXml(release.year);
+  let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
+    <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
+
+  if (layout === "image" && state.caseImage) {
+    body += `<g clip-path="url(#${clipId})">${imageFill(state.caseImage, bleedBox(label))}</g>`;
+  } else {
+    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack()} font-size="5.2" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack()} font-size="3" font-weight="600">${artist} - ${year}</text>`;
+    textLines(controls.tracks.value).slice(0, 12).forEach((line, index) => {
+      body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack()} font-size="2.35">${escapeXml(line)}</text>`;
+    });
+  }
+
+  if (layout === "image" && state.caseImage) {
+    body += `<rect x="${label.x + 4}" y="${label.y + 4}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
+    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack()} font-size="4.2" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack()} font-size="2.5">${artist} - ${year}</text>`;
+  }
+
+  body += logoUse(label, "case");
+  body += `<rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />`;
+  return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath>${cropMarks(label)}<g>${body}</g>`;
+}
+
+function renderSpine(label, release) {
+  const bg = controls["spine-bg"].value;
+  const text = controls["spine-text"].value;
+  const spineText = controls["spine-auto"].checked
+    ? `${release.album} : ${release.artist}`
+    : controls["spine-freeform"].value;
+
+  if (label.rotated) {
+    const local = { x: 0, y: 0, width: labelSizes.spine.width, height: labelSizes.spine.height };
+    return `${cropMarks(label)}
+    <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
+      <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
+      <text x="2" y="2.55" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+      ${logoUse(local, "spine")}
+      <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />
+    </g>`;
+  }
+
+  return `${cropMarks(label)}
+  <g>
+    <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
+    <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+    ${logoUse(label, "spine")}
+    <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />
+  </g>`;
+}
+
+function renderSheet() {
+  const copies = sheetCopies()
+    .map((copy, index) => {
+      const release = releaseForCopy(index);
+      return `
+        ${renderCase(copy.case, index, release)}
+        ${renderSpine(copy.spine, release)}
+        ${renderDisc(copy.disc, index, release)}
+      `;
+    })
+    .join("");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.width}mm" height="${PAGE.height}mm" viewBox="0 0 ${PAGE.width} ${PAGE.height}">
+    <style>
+      .crop-marks line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; vector-effect: non-scaling-stroke; }
+      text { dominant-baseline: alphabetic; }
+    </style>
+    <rect width="${PAGE.width}" height="${PAGE.height}" fill="#fff" />
+    ${copies}
+  </svg>`;
+  sheetHost.innerHTML = svg;
+  return svg;
+}
+
+function syncSheetMode() {
+  const releaseListField = document.getElementById("release-list-field");
+  releaseListField.classList.toggle("hidden", controls["sheet-mode"].value !== "multiple");
+}
+
+function download(name, contents, type) {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function handleImageUpload(event, key) {
+  state[key] = await fileToDataUrl(event.target.files[0]);
+  renderSheet();
+}
+
+controls["disc-image"].addEventListener("change", (event) => handleImageUpload(event, "discImage"));
+controls["case-image"].addEventListener("change", (event) => handleImageUpload(event, "caseImage"));
+controls["logo-file"].addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  const svg = file ? await fileToText(file) : "";
+  state.logoHref = svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : "";
+  renderSheet();
+});
+
+document.querySelectorAll("input, select, textarea").forEach((el) => {
+  el.addEventListener("input", renderSheet);
+  el.addEventListener("change", renderSheet);
+});
+
+controls["sheet-mode"].addEventListener("change", syncSheetMode);
+
+document.getElementById("download-svg").addEventListener("click", () => {
+  download("minidisc-labels.svg", renderSheet(), "image/svg+xml");
+});
+
+document.getElementById("print-pdf").addEventListener("click", () => {
+  renderSheet();
+  window.print();
+});
+
+document.getElementById("reset-art").addEventListener("click", () => {
+  state.discImage = "";
+  state.caseImage = "";
+  state.logoHref = "";
+  controls["disc-image"].value = "";
+  controls["case-image"].value = "";
+  controls["logo-file"].value = "";
+  renderSheet();
+});
+
+syncSheetMode();
+renderSheet();

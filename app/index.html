@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MiniDisc Label Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;700&family=Roboto+Condensed:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="panel" aria-label="Label controls">
+        <div class="brand-row">
+          <div>
+            <h1>MiniDisc Labels</h1>
+            <p>A4 sheet with 2 mm bleed and 0.25 pt crop marks.</p>
+          </div>
+          <button id="print-pdf" class="icon-button primary" type="button" title="Export PDF">
+            PDF
+          </button>
+        </div>
+
+        <section class="control-section">
+          <h2>Sheet</h2>
+          <label>
+            Sheet content
+            <select id="sheet-mode">
+              <option value="repeat" selected>Full sheet of this label</option>
+              <option value="multiple">Multiple labels from list</option>
+            </select>
+          </label>
+          <label>
+            Copies per A4 sheet
+            <select id="copies">
+              <option value="1">1-up</option>
+              <option value="4" selected>4-up</option>
+              <option value="6">6-up</option>
+              <option value="8">8-up</option>
+            </select>
+          </label>
+          <label>
+            Spine orientation
+            <select id="spine-orientation">
+              <option value="auto" selected>Auto</option>
+              <option value="horizontal">Horizontal</option>
+              <option value="rotated">Rotated 90 deg</option>
+            </select>
+          </label>
+          <label id="release-list-field" class="conditional-field hidden">
+            Multiple labels
+            <textarea id="release-list" rows="6">Blue Hour | Mika Vale | 2026
+Silver Map | Arlo Chen | 1999
+Signal Garden | Nia Kade | 2003
+Late Static | Mika Vale | 2001</textarea>
+            <span class="hint">One label per line: Album Name | Artist Name | Year. Empty slots repeat from the top.</span>
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Release</h2>
+          <label>
+            Album Name
+            <input id="album" type="text" value="Blue Hour" />
+          </label>
+          <label>
+            Artist Name
+            <input id="artist" type="text" value="Mika Vale" />
+          </label>
+          <label>
+            Year
+            <input id="year" type="text" value="2026" />
+          </label>
+          <label>
+            Font
+            <select id="font">
+              <option>Inter</option>
+              <option>IBM Plex Sans</option>
+              <option>Space Grotesk</option>
+              <option>Bebas Neue</option>
+              <option>Playfair Display</option>
+              <option>Roboto Condensed</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="control-section two-col">
+          <h2>Colors</h2>
+          <label>
+            Disc BG
+            <input id="disc-bg" type="color" value="#f7f2e8" />
+          </label>
+          <label>
+            Disc Text
+            <input id="disc-text" type="color" value="#18202a" />
+          </label>
+          <label>
+            Case BG
+            <input id="case-bg" type="color" value="#111820" />
+          </label>
+          <label>
+            Case Text
+            <input id="case-text" type="color" value="#f4f1e8" />
+          </label>
+          <label>
+            Spine BG
+            <input id="spine-bg" type="color" value="#f4f1e8" />
+          </label>
+          <label>
+            Spine Text
+            <input id="spine-text" type="color" value="#111820" />
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Disc Label</h2>
+          <label>
+            Layout
+            <select id="disc-layout">
+              <option value="square">Square image with text</option>
+              <option value="full">Full label image</option>
+              <option value="text">Text only</option>
+            </select>
+          </label>
+          <label>
+            Disc image
+            <input id="disc-image" type="file" accept="image/*" />
+            <span class="hint">Full label image: 316 x 467 px to 351 x 519 px at trim size, or 352 x 502 px to 391 x 558 px with 2 mm bleed.</span>
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Case Label</h2>
+          <label>
+            Layout
+            <select id="case-layout">
+              <option value="image">Image</option>
+              <option value="tracks" selected>Tracklisting</option>
+            </select>
+          </label>
+          <label>
+            Case image
+            <input id="case-image" type="file" accept="image/*" />
+            <span class="hint">Full case image: 629 x 461 px to 699 x 512 px at trim size, or 664 x 496 px to 738 x 551 px with 2 mm bleed.</span>
+          </label>
+          <label>
+            Tracklisting
+            <textarea id="tracks" rows="7">01 Night Drive
+02 Glass Station
+03 Blue Hour
+04 Static Bloom
+05 Magnetic Sky
+06 Last Train</textarea>
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Spine</h2>
+          <label class="checkbox">
+            <input id="spine-auto" type="checkbox" checked />
+            <span>Use Album Name : Artist Name</span>
+          </label>
+          <label>
+            Freeform text
+            <input id="spine-freeform" type="text" value="BLUE HOUR : MIKA VALE" />
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>MiniDisc Logo</h2>
+          <label>
+            Vector logo
+            <input id="logo-file" type="file" accept=".svg,image/svg+xml" />
+          </label>
+          <div class="logo-options">
+            <label class="checkbox">
+              <input id="logo-disc" type="checkbox" checked />
+              <span>Disc</span>
+            </label>
+            <label class="checkbox">
+              <input id="logo-case" type="checkbox" checked />
+              <span>Case</span>
+            </label>
+            <label class="checkbox">
+              <input id="logo-spine" type="checkbox" />
+              <span>Spine</span>
+            </label>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button id="download-svg" type="button">Download SVG</button>
+          <button id="reset-art" type="button">Clear Images</button>
+        </div>
+      </aside>
+
+      <section class="preview-wrap" aria-label="A4 print preview">
+        <div class="preview-toolbar">
+          <span>SVG preview</span>
+          <span>100% print scale on A4</span>
+        </div>
+        <div id="sheet-host" class="sheet-host"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
