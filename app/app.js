@@ -2,7 +2,7 @@ const PT_TO_MM = 0.352777778;
 const PAGE = { width: 210, height: 297 };
 const BLEED = 2;
 const CROP_GAP = 2;
-const CROP_LEN = 6;
+const CROP_LEN = 2.5;
 const CROP_STROKE = 0.25 * PT_TO_MM;
 
 const labelSizes = {
@@ -103,18 +103,21 @@ function labelAt(kind, x, y) {
 function sheetCopies() {
   const count = Number(controls.copies.value);
   const rotateSpines = controls["spine-orientation"].value === "rotated";
-  const caseXs = [10, 86];
-  const caseYs = rotateSpines ? [8, 62, 116, 170] : [8, 64, 120, 176];
-  const discMainYs = [8, 64, 120, 176];
-  const discBottomXs = [10, 50, 90, 130];
+  const spacious = count <= 4;
+  const caseXs = [8, 86];
+  const caseYs = rotateSpines
+    ? spacious ? [8, 73, 138, 203] : [8, 70, 132, 194]
+    : spacious ? [8, 73, 138, 203] : [8, 66, 124, 182];
+  const discMainYs = spacious ? [8, 73, 138, 203] : [8, 66, 124, 182];
+  const discBottomXs = [8, 49, 90, 131];
 
   return Array.from({ length: count }, (_, index) => {
     const caseCol = index % 2;
     const caseRow = Math.floor(index / 2);
     const caseX = caseXs[caseCol];
     const caseY = caseYs[caseRow];
-    const discX = index < 4 ? 166 : discBottomXs[index - 4];
-    const discY = index < 4 ? discMainYs[index] : 236;
+    const discX = index < 4 ? 168 : discBottomXs[index - 4];
+    const discY = index < 4 ? discMainYs[index] : 238.5;
 
     return {
       disc: labelAt("disc", discX, discY),
@@ -126,7 +129,7 @@ function sheetCopies() {
             height: labelSizes.spine.width,
             rotated: true,
           }
-        : { ...labelAt("spine", caseX + 6, caseY + 52), rotated: false },
+        : { ...labelAt("spine", caseX + 6, caseY + (spacious ? 56.5 : 52)), rotated: false },
     };
   });
 }
