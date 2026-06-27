@@ -262,8 +262,9 @@ function sheetCopies() {
   const caseXs = [8, 86];
   const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
-  const discBottomXs = [8, 49, 90, 131];
-  const spineBlock = { x: 8, y: 263, gap: 5.4 };
+  const discBottomXs = [86, 127, 168, 168];
+  const usedCaseRows = Math.ceil(count / 2);
+  const spineBlock = { x: 8, y: caseYs[usedCaseRows] || 203, gap: 5.4 };
 
   return Array.from({ length: count }, (_, index) => {
     const caseCol = index % 2;
