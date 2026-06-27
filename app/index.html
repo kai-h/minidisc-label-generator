@@ -185,8 +185,13 @@ Late Static | Mika Vale | 2001</textarea>
         <section class="control-section">
           <h2>MiniDisc Logo</h2>
           <label>
-            Vector logo
-            <input id="logo-file" type="file" accept=".svg,image/svg+xml" />
+            Logo artwork
+            <select id="logo-style">
+              <option value="auto" selected>Auto contrast</option>
+              <option value="black">Black logo</option>
+              <option value="white">White logo</option>
+              <option value="none">No logo</option>
+            </select>
           </label>
           <div class="logo-options">
             <label class="checkbox">

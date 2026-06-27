@@ -14,7 +14,11 @@ const labelSizes = {
 const state = {
   discImage: "",
   caseImage: "",
-  logoHref: "",
+};
+
+const builtInLogos = {
+  black: "./assets/minidisc-logo-black.svg",
+  white: "./assets/minidisc-logo-white.svg",
 };
 
 const controls = {};
@@ -69,15 +73,6 @@ function fileToDataUrl(file) {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.readAsDataURL(file);
-  });
-}
-
-function fileToText(file) {
-  return new Promise((resolve) => {
-    if (!file) return resolve("");
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsText(file);
   });
 }
 
@@ -169,13 +164,29 @@ function imageFill(href, box, mode = "cover") {
   return `<image href="${href}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" preserveAspectRatio="${preserve}" />`;
 }
 
+function colorLuminance(hex) {
+  const clean = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((index) => parseInt(clean.slice(index, index + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function logoHref(placement) {
+  const style = controls["logo-style"].value;
+  if (style === "none") return "";
+  if (style === "black" || style === "white") return builtInLogos[style];
+
+  const bg = controls[`${placement}-bg`]?.value || controls["case-bg"].value;
+  return colorLuminance(bg) < 0.45 ? builtInLogos.white : builtInLogos.black;
+}
+
 function logoUse(label, placement) {
-  if (!state.logoHref || !controls[`logo-${placement}`].checked) return "";
+  const href = logoHref(placement);
+  if (!href || !controls[`logo-${placement}`].checked) return "";
   const width = placement === "spine" ? 10 : 12;
   const height = placement === "spine" ? 2.3 : 5;
   const x = label.x + label.width - width - 2;
   const y = placement === "spine" ? label.y + 0.55 : label.y + label.height - height - 2;
-  return `<image href="${state.logoHref}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
+  return `<image href="${href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
 }
 
 function renderDisc(label, copyIndex, release) {
@@ -311,13 +322,6 @@ async function handleImageUpload(event, key) {
 
 controls["disc-image"].addEventListener("change", (event) => handleImageUpload(event, "discImage"));
 controls["case-image"].addEventListener("change", (event) => handleImageUpload(event, "caseImage"));
-controls["logo-file"].addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  const svg = file ? await fileToText(file) : "";
-  state.logoHref = svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : "";
-  renderSheet();
-});
-
 document.querySelectorAll("input, select, textarea").forEach((el) => {
   el.addEventListener("input", renderSheet);
   el.addEventListener("change", renderSheet);
@@ -337,10 +341,8 @@ document.getElementById("print-pdf").addEventListener("click", () => {
 document.getElementById("reset-art").addEventListener("click", () => {
   state.discImage = "";
   state.caseImage = "";
-  state.logoHref = "";
   controls["disc-image"].value = "";
   controls["case-image"].value = "";
-  controls["logo-file"].value = "";
   renderSheet();
 });
 
