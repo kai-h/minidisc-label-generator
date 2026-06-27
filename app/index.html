@@ -6,7 +6,7 @@
     <title>MiniDisc Label Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;700&family=Roboto+Condensed:wght@400;500;700&display=swap" />
+    <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Roboto+Condensed:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Spectral:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Archivo+Black&family=Oswald:wght@400;500;600;700&family=Staatliches&family=Unica+One&display=swap" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -75,12 +75,27 @@ Late Static | Mika Vale | 2001</textarea>
           <label>
             Font
             <select id="font">
-              <option>Inter</option>
-              <option>IBM Plex Sans</option>
-              <option>Space Grotesk</option>
-              <option>Bebas Neue</option>
-              <option>Playfair Display</option>
-              <option>Roboto Condensed</option>
+              <optgroup label="Sans serif">
+                <option>Inter</option>
+                <option>IBM Plex Sans</option>
+                <option>Source Sans 3</option>
+                <option>Roboto Condensed</option>
+                <option>Work Sans</option>
+              </optgroup>
+              <optgroup label="Serif">
+                <option>Libre Baskerville</option>
+                <option>Cormorant Garamond</option>
+                <option>Playfair Display</option>
+                <option>Spectral</option>
+              </optgroup>
+              <optgroup label="Display">
+                <option>Space Grotesk</option>
+                <option>Bebas Neue</option>
+                <option>Archivo Black</option>
+                <option>Oswald</option>
+                <option>Staatliches</option>
+                <option>Unica One</option>
+              </optgroup>
             </select>
           </label>
         </section>
