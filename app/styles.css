@@ -163,6 +163,27 @@ textarea {
   flex-wrap: wrap;
 }
 
+.label-set-field {
+  display: grid;
+  gap: 10px;
+}
+
+.label-set-field.hidden {
+  display: none;
+}
+
+.mini-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.mini-actions button {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

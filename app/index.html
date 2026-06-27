@@ -48,14 +48,18 @@
               <option value="rotated">Rotated 90 deg</option>
             </select>
           </label>
-          <label id="release-list-field" class="conditional-field hidden">
-            Multiple labels
-            <textarea id="release-list" rows="6">Blue Hour | Mika Vale | 2026 | Night Drive; Glass Station; Blue Hour; Static Bloom
-Silver Map | Arlo Chen | 1999 | North Pier; Silver Map; Rooms Above; Broadcast
-Signal Garden | Nia Kade | 2003 | Folded Signal; Seed Tone; Garden Wall; Receiver
-Late Static | Mika Vale | 2001 | Late Static; Soft Error; Return Path; Wake</textarea>
-            <span class="hint">One label per line: Album Name | Artist Name | Year | Track 1; Track 2; Track 3. Empty slots repeat from the top.</span>
-          </label>
+          <div id="label-set-field" class="conditional-field hidden label-set-field">
+            <label>
+              Editing label
+              <select id="selected-label"></select>
+            </label>
+            <div class="mini-actions">
+              <button id="add-label" type="button">Add</button>
+              <button id="duplicate-label" type="button">Duplicate</button>
+              <button id="delete-label" type="button">Delete</button>
+            </div>
+            <span class="hint">Each label has its own text, tracks, images, colors, type, layouts, and logo options. Empty sheet slots repeat from Label 1.</span>
+          </div>
         </section>
 
         <section class="control-section">

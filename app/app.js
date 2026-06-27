@@ -13,8 +13,9 @@ const labelSizes = {
 };
 
 const state = {
-  discImage: "",
-  caseImage: "",
+  labels: [],
+  selectedIndex: 0,
+  isSyncingControls: false,
 };
 
 const builtInLogos = {
@@ -36,7 +37,7 @@ const escapeXml = (value) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-const fontStack = () => `"'${escapeXml(controls.font.value)}', Arial, sans-serif"`;
+const fontStack = (labelConfig) => `"'${escapeXml(labelConfig.font)}', Arial, sans-serif"`;
 
 function textLines(value) {
   return String(value)
@@ -45,32 +46,110 @@ function textLines(value) {
     .filter(Boolean);
 }
 
-function currentRelease() {
+function currentLabelFromControls() {
   return {
     album: controls.album.value,
     artist: controls.artist.value,
     year: controls.year.value,
+    font: controls.font.value,
+    discBg: controls["disc-bg"].value,
+    discText: controls["disc-text"].value,
+    caseBg: controls["case-bg"].value,
+    caseText: controls["case-text"].value,
+    spineBg: controls["spine-bg"].value,
+    spineText: controls["spine-text"].value,
+    discLayout: controls["disc-layout"].value,
+    caseLayout: controls["case-layout"].value,
     tracks: textLines(controls.tracks.value),
+    spineAuto: controls["spine-auto"].checked,
+    spineFreeform: controls["spine-freeform"].value,
+    logoStyle: controls["logo-style"].value,
+    logoCorner: controls["logo-corner"].value,
+    logoDisc: controls["logo-disc"].checked,
+    logoCase: controls["logo-case"].checked,
+    logoSpine: controls["logo-spine"].checked,
+    discImage: state.labels[state.selectedIndex]?.discImage || "",
+    caseImage: state.labels[state.selectedIndex]?.caseImage || "",
   };
 }
 
-function multipleReleases() {
-  const releases = textLines(controls["release-list"].value).map((line) => {
-    const [album = "", artist = "", year = "", trackText = ""] = line.split("|").map((part) => part.trim());
-    const tracks = trackText
-      .split(";")
-      .map((track) => track.trim())
-      .filter(Boolean);
-    return { album, artist, year, tracks };
-  });
-
-  return releases.length ? releases : [currentRelease()];
+function createLabel(overrides = {}) {
+  return {
+    album: "Blue Hour",
+    artist: "Mika Vale",
+    year: "2026",
+    font: "Inter",
+    discBg: "#f7f2e8",
+    discText: "#18202a",
+    caseBg: "#111820",
+    caseText: "#f4f1e8",
+    spineBg: "#f4f1e8",
+    spineText: "#111820",
+    discLayout: "square",
+    caseLayout: "tracks",
+    tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
+    spineAuto: true,
+    spineFreeform: "BLUE HOUR : MIKA VALE",
+    logoStyle: "auto",
+    logoCorner: "bottom-right",
+    logoDisc: true,
+    logoCase: true,
+    logoSpine: false,
+    discImage: "",
+    caseImage: "",
+    ...overrides,
+  };
 }
 
-function releaseForCopy(index) {
-  if (controls["sheet-mode"].value !== "multiple") return currentRelease();
-  const releases = multipleReleases();
-  return releases[index % releases.length];
+function saveSelectedLabel() {
+  if (state.isSyncingControls || !state.labels.length) return;
+  state.labels[state.selectedIndex] = currentLabelFromControls();
+}
+
+function labelForCopy(index) {
+  saveSelectedLabel();
+  if (controls["sheet-mode"].value !== "multiple") return state.labels[state.selectedIndex];
+  return state.labels[index % state.labels.length] || state.labels[0];
+}
+
+function syncLabelControls() {
+  const labelConfig = state.labels[state.selectedIndex];
+  if (!labelConfig) return;
+  state.isSyncingControls = true;
+  controls.album.value = labelConfig.album;
+  controls.artist.value = labelConfig.artist;
+  controls.year.value = labelConfig.year;
+  controls.font.value = labelConfig.font;
+  controls["disc-bg"].value = labelConfig.discBg;
+  controls["disc-text"].value = labelConfig.discText;
+  controls["case-bg"].value = labelConfig.caseBg;
+  controls["case-text"].value = labelConfig.caseText;
+  controls["spine-bg"].value = labelConfig.spineBg;
+  controls["spine-text"].value = labelConfig.spineText;
+  controls["disc-layout"].value = labelConfig.discLayout;
+  controls["case-layout"].value = labelConfig.caseLayout;
+  controls.tracks.value = labelConfig.tracks.join("\n");
+  controls["spine-auto"].checked = labelConfig.spineAuto;
+  controls["spine-freeform"].value = labelConfig.spineFreeform;
+  controls["logo-style"].value = labelConfig.logoStyle;
+  controls["logo-corner"].value = labelConfig.logoCorner;
+  controls["logo-disc"].checked = labelConfig.logoDisc;
+  controls["logo-case"].checked = labelConfig.logoCase;
+  controls["logo-spine"].checked = labelConfig.logoSpine;
+  controls["disc-image"].value = "";
+  controls["case-image"].value = "";
+  state.isSyncingControls = false;
+}
+
+function syncLabelPicker() {
+  const picker = controls["selected-label"];
+  picker.innerHTML = state.labels
+    .map((labelConfig, index) => {
+      const name = labelConfig.album || `Label ${index + 1}`;
+      return `<option value="${index}">Label ${index + 1}: ${escapeXml(name)}</option>`;
+    })
+    .join("");
+  picker.value = String(Math.min(state.selectedIndex, state.labels.length - 1));
 }
 
 function fileToDataUrl(file) {
@@ -199,120 +278,126 @@ function colorLuminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-function logoHref(placement) {
-  const style = controls["logo-style"].value;
+function logoHref(placement, labelConfig) {
+  const style = labelConfig.logoStyle;
   if (style === "none") return "";
   if (style === "black" || style === "white") return builtInLogos[style];
 
-  const bg = controls[`${placement}-bg`]?.value || controls["case-bg"].value;
+  const bg = labelConfig[`${placement}Bg`] || labelConfig.caseBg;
   return colorLuminance(bg) < 0.45 ? builtInLogos.white : builtInLogos.black;
 }
 
-function logoUse(label, placement) {
-  const href = logoHref(placement);
-  if (!href || !controls[`logo-${placement}`].checked) return "";
+function logoUse(label, placement, labelConfig) {
+  const href = logoHref(placement, labelConfig);
+  const enabled = {
+    disc: labelConfig.logoDisc,
+    case: labelConfig.logoCase,
+    spine: labelConfig.logoSpine,
+  };
+  if (!href || !enabled[placement]) return "";
   const width = placement === "spine" ? 10 : 12;
   const height = placement === "spine" ? 2.3 : 5;
   const margin = placement === "spine" ? 0.6 : 1.2;
-  const corner = controls["logo-corner"].value;
+  const corner = labelConfig.logoCorner;
   const x = corner.endsWith("left") ? label.x + margin : label.x + label.width - width - margin;
   const y = corner.startsWith("top") ? label.y + margin : label.y + label.height - height - margin;
   return `<image href="${href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
 }
 
-function renderDisc(label, copyIndex, release) {
+function renderDisc(label, copyIndex, labelConfig) {
   const clipId = `disc-clip-${copyIndex}`;
   const path = chamferPath(label);
-  const bg = controls["disc-bg"].value;
-  const text = controls["disc-text"].value;
-  const layout = controls["disc-layout"].value;
-  const album = escapeXml(release.album);
-  const artist = escapeXml(release.artist);
-  const year = escapeXml(release.year);
+  const bg = labelConfig.discBg;
+  const text = labelConfig.discText;
+  const layout = labelConfig.discLayout;
+  const album = escapeXml(labelConfig.album);
+  const artist = escapeXml(labelConfig.artist);
+  const year = escapeXml(labelConfig.year);
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <path d="${path}" fill="${bg}" />`;
 
   if (layout === "full") {
-    body += `<g clip-path="url(#${clipId})">${state.discImage ? imageFill(state.discImage, bleedBox(label)) : placeholderArt(bleedBox(label), "disc")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${labelConfig.discImage ? imageFill(labelConfig.discImage, bleedBox(label)) : placeholderArt(bleedBox(label), "disc")}</g>`;
   } else if (layout === "square") {
     const size = 31.5;
     const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
-    body += `<g clip-path="url(#${clipId})">${state.discImage ? imageFill(state.discImage, img) : placeholderArt(img, "disc")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${labelConfig.discImage ? imageFill(labelConfig.discImage, img) : placeholderArt(img, "disc")}</g>`;
   }
 
   if (layout !== "full") {
-    body += `<text x="${label.x + 2.2}" y="${label.y + 5.7}" fill="${text}" font-family=${fontStack()} font-size="3.4" font-weight="700">${album}</text>`;
-    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 6.2}" fill="${text}" font-family=${fontStack()} font-size="2.6" font-weight="600">${artist}</text>`;
-    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 2.6}" fill="${text}" font-family=${fontStack()} font-size="2.2">${year}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + 5.7}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3.4" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 6.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.6" font-weight="600">${artist}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 2.6}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.2">${year}</text>`;
   }
 
-  body += logoUse(label, "disc");
+  body += logoUse(label, "disc", labelConfig);
 
   return `<clipPath id="${clipId}"><path d="${path}" /></clipPath>${cropMarks(label, true)}<g>${body}</g>`;
 }
 
-function renderCase(label, copyIndex, release) {
+function renderCase(label, copyIndex, labelConfig) {
   const clipId = `case-clip-${copyIndex}`;
-  const bg = controls["case-bg"].value;
-  const text = controls["case-text"].value;
-  const layout = controls["case-layout"].value;
-  const album = escapeXml(release.album);
-  const artist = escapeXml(release.artist);
-  const year = escapeXml(release.year);
-  const tracks = release.tracks?.length ? release.tracks : textLines(controls.tracks.value);
+  const bg = labelConfig.caseBg;
+  const text = labelConfig.caseText;
+  const layout = labelConfig.caseLayout;
+  const album = escapeXml(labelConfig.album);
+  const artist = escapeXml(labelConfig.artist);
+  const year = escapeXml(labelConfig.year);
+  const tracks = labelConfig.tracks || [];
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
   if (layout === "image") {
-    body += `<g clip-path="url(#${clipId})">${state.caseImage ? imageFill(state.caseImage, bleedBox(label)) : placeholderArt(bleedBox(label), "case")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${labelConfig.caseImage ? imageFill(labelConfig.caseImage, bleedBox(label)) : placeholderArt(bleedBox(label), "case")}</g>`;
   } else {
-    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack()} font-size="5.2" font-weight="700">${album}</text>`;
-    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack()} font-size="3" font-weight="600">${artist} - ${year}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="600">${artist} - ${year}</text>`;
     tracks.slice(0, 12).forEach((line, index) => {
-      body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack()} font-size="2.35">${escapeXml(line)}</text>`;
+      body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
     });
   }
 
   if (layout === "image") {
     body += `<rect x="${label.x + 4}" y="${label.y + 4}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
-    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack()} font-size="4.2" font-weight="700">${album}</text>`;
-    body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack()} font-size="2.5">${artist} - ${year}</text>`;
+    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
   }
 
-  body += logoUse(label, "case");
+  body += logoUse(label, "case", labelConfig);
   return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath>${cropMarks(label)}<g>${body}</g>`;
 }
 
-function renderSpine(label, release) {
-  const bg = controls["spine-bg"].value;
-  const text = controls["spine-text"].value;
-  const spineText = controls["spine-auto"].checked
-    ? `${release.album} : ${release.artist}`
-    : controls["spine-freeform"].value;
+function renderSpine(label, labelConfig) {
+  const bg = labelConfig.spineBg;
+  const text = labelConfig.spineText;
+  const spineText = labelConfig.spineAuto
+    ? `${labelConfig.album} : ${labelConfig.artist}`
+    : labelConfig.spineFreeform;
 
   if (label.rotated) {
     const local = { x: 0, y: 0, width: labelSizes.spine.width, height: labelSizes.spine.height };
     return `${cropMarks(label, false, SPINE_CROP_GAP)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
-      <text x="2" y="2.55" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
-      ${logoUse(local, "spine")}
+      <text x="2" y="2.55" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+      ${logoUse(local, "spine", labelConfig)}
     </g>`;
   }
 
   return `${cropMarks(label, false, SPINE_CROP_GAP)}
   <g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
-    <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
-    ${logoUse(label, "spine")}
+    <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+    ${logoUse(label, "spine", labelConfig)}
   </g>`;
 }
 
 function renderSheet() {
   const copies = sheetCopies();
-  const cases = copies.map((copy, index) => renderCase(copy.case, index, releaseForCopy(index))).join("");
-  const spines = copies.map((copy, index) => renderSpine(copy.spine, releaseForCopy(index))).join("");
-  const discs = copies.map((copy, index) => renderDisc(copy.disc, index, releaseForCopy(index))).join("");
+  const labelConfigs = copies.map((_, index) => labelForCopy(index));
+  const cases = copies.map((copy, index) => renderCase(copy.case, index, labelConfigs[index])).join("");
+  const spines = copies.map((copy, index) => renderSpine(copy.spine, labelConfigs[index])).join("");
+  const discs = copies.map((copy, index) => renderDisc(copy.disc, index, labelConfigs[index])).join("");
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.width}mm" height="${PAGE.height}mm" viewBox="0 0 ${PAGE.width} ${PAGE.height}">
     <style>
@@ -329,8 +414,9 @@ function renderSheet() {
 }
 
 function syncSheetMode() {
-  const releaseListField = document.getElementById("release-list-field");
-  releaseListField.classList.toggle("hidden", controls["sheet-mode"].value !== "multiple");
+  const labelSetField = document.getElementById("label-set-field");
+  labelSetField.classList.toggle("hidden", controls["sheet-mode"].value !== "multiple");
+  syncLabelPicker();
 }
 
 function download(name, contents, type) {
@@ -403,15 +489,65 @@ async function downloadPdf() {
 }
 
 async function handleImageUpload(event, key) {
-  state[key] = await fileToDataUrl(event.target.files[0]);
+  saveSelectedLabel();
+  state.labels[state.selectedIndex][key] = await fileToDataUrl(event.target.files[0]);
   renderSheet();
 }
 
 controls["disc-image"].addEventListener("change", (event) => handleImageUpload(event, "discImage"));
 controls["case-image"].addEventListener("change", (event) => handleImageUpload(event, "caseImage"));
+
+controls["selected-label"].addEventListener("change", () => {
+  if (state.isSyncingControls) return;
+  saveSelectedLabel();
+  state.selectedIndex = Number(controls["selected-label"].value);
+  syncLabelControls();
+  renderSheet();
+});
+
+document.getElementById("add-label").addEventListener("click", () => {
+  saveSelectedLabel();
+  state.labels.push(createLabel({ album: `Label ${state.labels.length + 1}`, artist: "", year: "" }));
+  state.selectedIndex = state.labels.length - 1;
+  syncLabelPicker();
+  syncLabelControls();
+  renderSheet();
+});
+
+document.getElementById("duplicate-label").addEventListener("click", () => {
+  saveSelectedLabel();
+  const source = state.labels[state.selectedIndex];
+  state.labels.splice(state.selectedIndex + 1, 0, {
+    ...source,
+    tracks: [...source.tracks],
+  });
+  state.selectedIndex += 1;
+  syncLabelPicker();
+  syncLabelControls();
+  renderSheet();
+});
+
+document.getElementById("delete-label").addEventListener("click", () => {
+  if (state.labels.length === 1) return;
+  state.labels.splice(state.selectedIndex, 1);
+  state.selectedIndex = Math.max(0, state.selectedIndex - 1);
+  syncLabelPicker();
+  syncLabelControls();
+  renderSheet();
+});
+
 document.querySelectorAll("input, select, textarea").forEach((el) => {
-  el.addEventListener("input", renderSheet);
-  el.addEventListener("change", renderSheet);
+  if (el.type === "file" || el.id === "selected-label") return;
+  el.addEventListener("input", () => {
+    saveSelectedLabel();
+    syncLabelPicker();
+    renderSheet();
+  });
+  el.addEventListener("change", () => {
+    saveSelectedLabel();
+    syncLabelPicker();
+    renderSheet();
+  });
 });
 
 controls["sheet-mode"].addEventListener("change", syncSheetMode);
@@ -425,12 +561,36 @@ document.getElementById("print-pdf").addEventListener("click", () => {
 });
 
 document.getElementById("reset-art").addEventListener("click", () => {
-  state.discImage = "";
-  state.caseImage = "";
+  saveSelectedLabel();
+  state.labels[state.selectedIndex].discImage = "";
+  state.labels[state.selectedIndex].caseImage = "";
   controls["disc-image"].value = "";
   controls["case-image"].value = "";
   renderSheet();
 });
 
+state.labels = [
+  createLabel(),
+  createLabel({
+    album: "Silver Map",
+    artist: "Arlo Chen",
+    year: "1999",
+    tracks: ["01 North Pier", "02 Silver Map", "03 Rooms Above", "04 Broadcast"],
+  }),
+  createLabel({
+    album: "Signal Garden",
+    artist: "Nia Kade",
+    year: "2003",
+    tracks: ["01 Folded Signal", "02 Seed Tone", "03 Garden Wall", "04 Receiver"],
+  }),
+  createLabel({
+    album: "Late Static",
+    artist: "Mika Vale",
+    year: "2001",
+    tracks: ["01 Late Static", "02 Soft Error", "03 Return Path", "04 Wake"],
+  }),
+];
+syncLabelPicker();
+syncLabelControls();
 syncSheetMode();
 renderSheet();
