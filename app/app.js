@@ -50,13 +50,18 @@ function currentRelease() {
     album: controls.album.value,
     artist: controls.artist.value,
     year: controls.year.value,
+    tracks: textLines(controls.tracks.value),
   };
 }
 
 function multipleReleases() {
   const releases = textLines(controls["release-list"].value).map((line) => {
-    const [album = "", artist = "", year = ""] = line.split("|").map((part) => part.trim());
-    return { album, artist, year };
+    const [album = "", artist = "", year = "", trackText = ""] = line.split("|").map((part) => part.trim());
+    const tracks = trackText
+      .split(";")
+      .map((track) => track.trim())
+      .filter(Boolean);
+    return { album, artist, year, tracks };
   });
 
   return releases.length ? releases : [currentRelease()];
@@ -254,6 +259,7 @@ function renderCase(label, copyIndex, release) {
   const album = escapeXml(release.album);
   const artist = escapeXml(release.artist);
   const year = escapeXml(release.year);
+  const tracks = release.tracks?.length ? release.tracks : textLines(controls.tracks.value);
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
@@ -262,7 +268,7 @@ function renderCase(label, copyIndex, release) {
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack()} font-size="5.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack()} font-size="3" font-weight="600">${artist} - ${year}</text>`;
-    textLines(controls.tracks.value).slice(0, 12).forEach((line, index) => {
+    tracks.slice(0, 12).forEach((line, index) => {
       body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack()} font-size="2.35">${escapeXml(line)}</text>`;
     });
   }
