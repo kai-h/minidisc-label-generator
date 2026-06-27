@@ -31,10 +31,32 @@ const builtInLogos = {
   white: "./assets/minidisc-logo-white.svg",
 };
 
-const previewArtwork = {
-  disc: "./assets/album-covers/synthwave-album-cover-391x558.png",
-  case: "./assets/album-covers/synthwave-album-cover-700x512.png",
-};
+const previewArtwork = [
+  {
+    disc: "./assets/album-covers/melodic-techno-minimal-album-cover-391x558.png",
+    case: "./assets/album-covers/melodic-techno-minimal-album-cover-700x512.png",
+  },
+  {
+    disc: "./assets/album-covers/synthwave-album-cover-391x558.png",
+    case: "./assets/album-covers/synthwave-album-cover-700x512.png",
+  },
+  {
+    disc: "./assets/album-covers/alt-singer-songwriter-light-album-cover-391x558.png",
+    case: "./assets/album-covers/alt-singer-songwriter-light-album-cover-700x512.png",
+  },
+  {
+    disc: "./assets/album-covers/melodic-techno-light-album-cover-391x558.png",
+    case: "./assets/album-covers/melodic-techno-light-album-cover-700x512.png",
+  },
+  {
+    disc: "./assets/album-covers/cyberpunk-city-album-cover-391x558.png",
+    case: "./assets/album-covers/cyberpunk-city-album-cover-700x512.png",
+  },
+  {
+    disc: "./assets/album-covers/alt-rock-amp-album-cover-391x558.png",
+    case: "./assets/album-covers/alt-rock-amp-album-cover-700x512.png",
+  },
+];
 
 const controls = {};
 document.querySelectorAll("input, select, textarea").forEach((el) => {
@@ -80,6 +102,7 @@ function currentLabelFromControls() {
     spineFreeform: controls["spine-freeform"].value,
     discImage: state.labels[state.selectedIndex]?.discImage || "",
     caseImage: state.labels[state.selectedIndex]?.caseImage || "",
+    previewIndex: state.labels[state.selectedIndex]?.previewIndex || 0,
   };
 }
 
@@ -102,8 +125,14 @@ function createLabel(overrides = {}) {
     spineFreeform: "BLUE HOUR : MIKA VALE",
     discImage: "",
     caseImage: "",
+    previewIndex: 0,
     ...overrides,
   };
+}
+
+function previewImage(labelConfig, placement) {
+  const index = labelConfig.previewIndex % previewArtwork.length;
+  return previewArtwork[index][placement];
 }
 
 function syncLogoSettings() {
@@ -330,11 +359,11 @@ function renderDisc(label, copyIndex, labelConfig) {
     <path d="${path}" fill="${bg}" />`;
 
   if (layout === "full") {
-    body += imageFill(labelConfig.discImage || previewArtwork.disc, imageBleedBox(label));
+    body += imageFill(labelConfig.discImage || previewImage(labelConfig, "disc"), imageBleedBox(label));
   } else if (layout === "square") {
     const size = 31.5;
     const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
-    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.discImage || previewArtwork.disc, img)}</g>`;
+    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.discImage || previewImage(labelConfig, "disc"), img)}</g>`;
   }
 
   if (layout !== "full") {
@@ -361,7 +390,7 @@ function renderCase(label, copyIndex, labelConfig) {
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
   if (layout === "image") {
-    body += imageFill(labelConfig.caseImage || previewArtwork.case, imageBleedBox(label));
+    body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), imageBleedBox(label));
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="600">${artist} - ${year}</text>`;
@@ -543,7 +572,12 @@ controls["selected-label"].addEventListener("change", () => {
 
 document.getElementById("add-label").addEventListener("click", () => {
   saveSelectedLabel();
-  state.labels.push(createLabel({ album: `Label ${state.labels.length + 1}`, artist: "", year: "" }));
+  state.labels.push(createLabel({
+    album: `Label ${state.labels.length + 1}`,
+    artist: "",
+    year: "",
+    previewIndex: state.labels.length % previewArtwork.length,
+  }));
   state.selectedIndex = state.labels.length - 1;
   syncLabelPicker();
   syncLabelControls();
@@ -617,24 +651,41 @@ document.getElementById("clear-case-image").addEventListener("click", () => {
 });
 
 state.labels = [
-  createLabel(),
+  createLabel({ previewIndex: 0 }),
   createLabel({
     album: "Silver Map",
     artist: "Arlo Chen",
     year: "1999",
     tracks: ["01 North Pier", "02 Silver Map", "03 Rooms Above", "04 Broadcast"],
+    previewIndex: 1,
   }),
   createLabel({
     album: "Signal Garden",
     artist: "Nia Kade",
     year: "2003",
     tracks: ["01 Folded Signal", "02 Seed Tone", "03 Garden Wall", "04 Receiver"],
+    previewIndex: 2,
   }),
   createLabel({
     album: "Late Static",
     artist: "Mika Vale",
     year: "2001",
     tracks: ["01 Late Static", "02 Soft Error", "03 Return Path", "04 Wake"],
+    previewIndex: 3,
+  }),
+  createLabel({
+    album: "Neon Civic",
+    artist: "Juno Trace",
+    year: "2041",
+    tracks: ["01 Neon Civic", "02 Glass Arcade", "03 Night Market", "04 Exit Ramp"],
+    previewIndex: 4,
+  }),
+  createLabel({
+    album: "Amp Weather",
+    artist: "The Satellites",
+    year: "2008",
+    tracks: ["01 Amp Weather", "02 Feedback Coast", "03 Open Chord", "04 Last Rehearsal"],
+    previewIndex: 5,
   }),
 ];
 syncLogoSettings();
