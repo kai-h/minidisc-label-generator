@@ -168,6 +168,26 @@ function imageFill(href, box, mode = "cover") {
   return `<image href="${href}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" preserveAspectRatio="${preserve}" />`;
 }
 
+function placeholderArt(box, variant = "disc") {
+  const dark = variant === "case";
+  const base = dark ? "#18212b" : "#dfe6e1";
+  const mid = dark ? "#2a3945" : "#aeb9b2";
+  const accent = dark ? "#d9b36c" : "#0f6f77";
+  const soft = dark ? "#334553" : "#f5efe2";
+  const cx = box.x + box.width * 0.5;
+  const cy = box.y + box.height * 0.5;
+
+  return `<g>
+    <rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" fill="${base}" />
+    <rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height * 0.34}" fill="${soft}" opacity="0.82" />
+    <circle cx="${cx}" cy="${cy}" r="${Math.min(box.width, box.height) * 0.31}" fill="none" stroke="${accent}" stroke-width="1.1" opacity="0.78" />
+    <circle cx="${cx}" cy="${cy}" r="${Math.min(box.width, box.height) * 0.13}" fill="${accent}" opacity="0.75" />
+    <path d="M ${box.x - 2} ${box.y + box.height * 0.72} L ${box.x + box.width * 0.35} ${box.y + box.height * 0.45} L ${box.x + box.width + 2} ${box.y + box.height * 0.82}" fill="none" stroke="${mid}" stroke-width="1.3" opacity="0.9" />
+    <path d="M ${box.x + box.width * 0.12} ${box.y + box.height + 2} L ${box.x + box.width * 0.82} ${box.y - 2}" fill="none" stroke="#ffffff" stroke-width="0.65" opacity="${dark ? "0.18" : "0.55"}" />
+    <path d="M ${box.x + box.width * 0.72} ${box.y + box.height + 2} L ${box.x + box.width + 2} ${box.y + box.height * 0.55}" fill="none" stroke="#ffffff" stroke-width="0.65" opacity="${dark ? "0.14" : "0.48"}" />
+  </g>`;
+}
+
 function colorLuminance(hex) {
   const clean = hex.replace("#", "");
   const [r, g, b] = [0, 2, 4].map((index) => parseInt(clean.slice(index, index + 2), 16) / 255);
@@ -205,12 +225,12 @@ function renderDisc(label, copyIndex, release) {
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <path d="${path}" fill="${bg}" />`;
 
-  if (layout === "full" && state.discImage) {
-    body += `<g clip-path="url(#${clipId})">${imageFill(state.discImage, bleedBox(label))}</g>`;
-  } else if (layout === "square" && state.discImage) {
+  if (layout === "full") {
+    body += `<g clip-path="url(#${clipId})">${state.discImage ? imageFill(state.discImage, bleedBox(label)) : placeholderArt(bleedBox(label), "disc")}</g>`;
+  } else if (layout === "square") {
     const size = 31.5;
     const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
-    body += `<g clip-path="url(#${clipId})">${imageFill(state.discImage, img)}</g>`;
+    body += `<g clip-path="url(#${clipId})">${state.discImage ? imageFill(state.discImage, img) : placeholderArt(img, "disc")}</g>`;
   }
 
   if (layout !== "full") {
@@ -235,8 +255,8 @@ function renderCase(label, copyIndex, release) {
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
-  if (layout === "image" && state.caseImage) {
-    body += `<g clip-path="url(#${clipId})">${imageFill(state.caseImage, bleedBox(label))}</g>`;
+  if (layout === "image") {
+    body += `<g clip-path="url(#${clipId})">${state.caseImage ? imageFill(state.caseImage, bleedBox(label)) : placeholderArt(bleedBox(label), "case")}</g>`;
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack()} font-size="5.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack()} font-size="3" font-weight="600">${artist} - ${year}</text>`;
@@ -245,7 +265,7 @@ function renderCase(label, copyIndex, release) {
     });
   }
 
-  if (layout === "image" && state.caseImage) {
+  if (layout === "image") {
     body += `<rect x="${label.x + 4}" y="${label.y + 4}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
     body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack()} font-size="4.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack()} font-size="2.5">${artist} - ${year}</text>`;
