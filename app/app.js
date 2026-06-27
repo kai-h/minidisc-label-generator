@@ -310,12 +310,71 @@ function syncSheetMode() {
 
 function download(name, contents, type) {
   const blob = new Blob([contents], { type });
+  downloadBlob(name, blob);
+}
+
+function downloadBlob(name, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function prepareSvgForPdf(svg) {
+  const clone = svg.cloneNode(true);
+  const images = Array.from(clone.querySelectorAll("image"));
+
+  await Promise.all(
+    images.map(async (image) => {
+      const href = image.getAttribute("href");
+      if (!href || href.startsWith("data:")) return;
+
+      const response = await fetch(href);
+      const text = await response.text();
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
+      image.setAttribute("href", dataUrl);
+    }),
+  );
+
+  return clone;
+}
+
+async function downloadPdf() {
+  renderSheet();
+  const svg = sheetHost.querySelector("svg");
+  const jsPDF = window.jspdf?.jsPDF;
+  const svg2pdf = window.svg2pdf?.svg2pdf || window.svg2pdf;
+
+  if (!svg || !jsPDF || typeof svg2pdf !== "function") {
+    window.print();
+    return;
+  }
+
+  const button = document.getElementById("print-pdf");
+  const previousText = button.textContent;
+  button.textContent = "...";
+  button.disabled = true;
+
+  try {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: true,
+      hotfixes: ["px_scaling"],
+    });
+    const pdfSvg = await prepareSvgForPdf(svg);
+    await svg2pdf(pdfSvg, pdf, { x: 0, y: 0, width: PAGE.width, height: PAGE.height });
+    downloadBlob("minidisc-labels.pdf", pdf.output("blob"));
+  } catch (error) {
+    console.error(error);
+    window.print();
+  } finally {
+    button.textContent = previousText;
+    button.disabled = false;
+  }
 }
 
 async function handleImageUpload(event, key) {
@@ -337,8 +396,7 @@ document.getElementById("download-svg").addEventListener("click", () => {
 });
 
 document.getElementById("print-pdf").addEventListener("click", () => {
-  renderSheet();
-  window.print();
+  downloadPdf();
 });
 
 document.getElementById("reset-art").addEventListener("click", () => {
