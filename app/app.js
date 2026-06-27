@@ -188,12 +188,9 @@ function labelAt(kind, x, y) {
 function sheetCopies() {
   const count = Number(controls.copies.value);
   const rotateSpines = controls["spine-orientation"].value === "rotated";
-  const spacious = count <= 4;
   const caseXs = [8, 86];
-  const caseYs = rotateSpines
-    ? spacious ? [8, 73, 138, 203] : [8, 70, 132, 194]
-    : spacious ? [8, 73, 138, 203] : [8, 66, 124, 182];
-  const discMainYs = spacious ? [8, 73, 138, 203] : [8, 66, 124, 182];
+  const caseYs = [8, 73, 138, 203];
+  const discMainYs = [8, 73, 138, 203];
   const discBottomXs = [8, 49, 90, 131];
 
   return Array.from({ length: count }, (_, index) => {
@@ -214,7 +211,7 @@ function sheetCopies() {
             height: labelSizes.spine.width,
             rotated: true,
           }
-        : { ...labelAt("spine", caseX + 6, caseY + (spacious ? 56.5 : 52)), rotated: false },
+        : { ...labelAt("spine", caseX + 6, caseY + 56.5), rotated: false },
     };
   });
 }
