@@ -208,8 +208,10 @@ function logoUse(label, placement) {
   if (!href || !controls[`logo-${placement}`].checked) return "";
   const width = placement === "spine" ? 10 : 12;
   const height = placement === "spine" ? 2.3 : 5;
-  const x = label.x + label.width - width - 2;
-  const y = placement === "spine" ? label.y + 0.55 : label.y + label.height - height - 2;
+  const margin = placement === "spine" ? 0.6 : 1.2;
+  const corner = controls["logo-corner"].value;
+  const x = corner.endsWith("left") ? label.x + margin : label.x + label.width - width - margin;
+  const y = corner.startsWith("top") ? label.y + margin : label.y + label.height - height - margin;
   return `<image href="${href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
 }
 
