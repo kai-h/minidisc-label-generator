@@ -15,10 +15,9 @@
         <div class="brand-row">
           <div>
             <h1>MiniDisc Labels</h1>
-            <p>A4 sheet with 2 mm bleed and 0.25 pt crop marks.</p>
           </div>
-          <button id="print-pdf" class="icon-button primary" type="button" title="Download PDF">
-            PDF
+          <button id="print-pdf" class="icon-button primary" type="button" title="Export PDF">
+            Export PDF
           </button>
         </div>
 
@@ -35,17 +34,9 @@
             Copies per A4 sheet
             <select id="copies">
               <option value="1">1-up</option>
+              <option value="2">2-up</option>
               <option value="4" selected>4-up</option>
               <option value="6">6-up</option>
-              <option value="8">8-up</option>
-            </select>
-          </label>
-          <label>
-            Spine orientation
-            <select id="spine-orientation">
-              <option value="auto" selected>Auto</option>
-              <option value="horizontal">Horizontal</option>
-              <option value="rotated">Rotated 90 deg</option>
             </select>
           </label>
           <div id="label-set-field" class="conditional-field hidden label-set-field">
@@ -147,8 +138,8 @@
             <input id="disc-image" type="file" accept="image/*" />
             <span class="hint multiline">
               <strong>Full label image:</strong>
-              <span>316 x 467 px to 351 x 519 px at trim size, or</span>
-              <span>352 x 502 px to 391 x 558 px with 2 mm bleed.</span>
+              <span>320 x 472 px to 360 x 531 px at trim size, or</span>
+              <span>360 x 514 px to 400 x 571 px with 2 mm bleed.</span>
             </span>
           </label>
         </section>
@@ -167,8 +158,8 @@
             <input id="case-image" type="file" accept="image/*" />
             <span class="hint multiline">
               <strong>Full case image:</strong>
-              <span>629 x 461 px to 699 x 512 px at trim size, or</span>
-              <span>664 x 496 px to 738 x 551 px with 2 mm bleed.</span>
+              <span>640 x 469 px to 700 x 513 px at trim size, or</span>
+              <span>680 x 508 px to 740 x 552 px with 2 mm bleed.</span>
             </span>
           </label>
           <label>
@@ -188,7 +179,7 @@
             <input id="spine-auto" type="checkbox" checked />
             <span>Use Album Name : Artist Name</span>
           </label>
-          <label>
+          <label id="spine-freeform-field">
             Freeform text
             <input id="spine-freeform" type="text" value="BLUE HOUR : MIKA VALE" />
           </label>

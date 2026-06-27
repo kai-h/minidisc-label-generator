@@ -214,8 +214,8 @@ button:hover {
 }
 
 .icon-button {
-  width: 54px;
-  min-width: 54px;
+  width: auto;
+  min-width: 96px;
 }
 
 .preview-wrap {

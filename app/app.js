@@ -30,6 +30,11 @@ const builtInLogos = {
   white: "./assets/minidisc-logo-white.svg",
 };
 
+const previewArtwork = {
+  disc: "./assets/album-covers/synthwave-album-cover-391x558.png",
+  case: "./assets/album-covers/synthwave-album-cover-700x512.png",
+};
+
 const controls = {};
 document.querySelectorAll("input, select, textarea").forEach((el) => {
   controls[el.id] = el;
@@ -146,6 +151,7 @@ function syncLabelControls() {
   controls["disc-image"].value = "";
   controls["case-image"].value = "";
   state.isSyncingControls = false;
+  syncSpineFreeform();
 }
 
 function syncLabelPicker() {
@@ -194,7 +200,6 @@ function labelAt(kind, x, y) {
 
 function sheetCopies() {
   const count = Number(controls.copies.value);
-  const rotateSpines = controls["spine-orientation"].value === "rotated";
   const caseXs = [8, 86];
   const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
@@ -211,14 +216,7 @@ function sheetCopies() {
     return {
       disc: labelAt("disc", discX, discY),
       case: labelAt("case", caseX, caseY),
-      spine: rotateSpines
-        ? {
-            ...labelAt("spine", caseX + labelSizes.case.width + BLEED + 0.8, caseY),
-            width: labelSizes.spine.height,
-            height: labelSizes.spine.width,
-            rotated: true,
-          }
-        : { ...labelAt("spine", caseX + 6, caseY + 56.5), rotated: false },
+      spine: { ...labelAt("spine", caseX + 6, caseY + 56.5), rotated: false },
     };
   });
 }
@@ -320,11 +318,11 @@ function renderDisc(label, copyIndex, labelConfig) {
     <path d="${path}" fill="${bg}" />`;
 
   if (layout === "full") {
-    body += `<g clip-path="url(#${clipId})">${labelConfig.discImage ? imageFill(labelConfig.discImage, bleedBox(label)) : placeholderArt(bleedBox(label), "disc")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.discImage || previewArtwork.disc, bleedBox(label))}</g>`;
   } else if (layout === "square") {
     const size = 31.5;
     const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
-    body += `<g clip-path="url(#${clipId})">${labelConfig.discImage ? imageFill(labelConfig.discImage, img) : placeholderArt(img, "disc")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.discImage || previewArtwork.disc, img)}</g>`;
   }
 
   if (layout !== "full") {
@@ -351,7 +349,7 @@ function renderCase(label, copyIndex, labelConfig) {
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
   if (layout === "image") {
-    body += `<g clip-path="url(#${clipId})">${labelConfig.caseImage ? imageFill(labelConfig.caseImage, bleedBox(label)) : placeholderArt(bleedBox(label), "case")}</g>`;
+    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.caseImage || previewArtwork.case, bleedBox(label))}</g>`;
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="600">${artist} - ${year}</text>`;
@@ -420,6 +418,10 @@ function syncSheetMode() {
   const labelSetField = document.getElementById("label-set-field");
   labelSetField.classList.toggle("hidden", controls["sheet-mode"].value !== "multiple");
   syncLabelPicker();
+}
+
+function syncSpineFreeform() {
+  document.getElementById("spine-freeform-field").classList.toggle("hidden", controls["spine-auto"].checked);
 }
 
 function download(name, contents, type) {
@@ -548,6 +550,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
       saveSelectedLabel();
       syncLabelPicker();
     }
+    if (el.id === "spine-auto") syncSpineFreeform();
     renderSheet();
   });
   el.addEventListener("change", () => {
@@ -557,6 +560,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
       saveSelectedLabel();
       syncLabelPicker();
     }
+    if (el.id === "spine-auto") syncSpineFreeform();
     renderSheet();
   });
 });
@@ -605,4 +609,5 @@ syncLogoSettings();
 syncLabelPicker();
 syncLabelControls();
 syncSheetMode();
+syncSpineFreeform();
 renderSheet();
