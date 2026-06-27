@@ -31,6 +31,24 @@ const builtInLogos = {
   white: "./assets/minidisc-logo-white.svg",
 };
 
+const pdfFonts = {
+  Inter: "./assets/fonts/Inter.ttf",
+  "IBM Plex Sans": "./assets/fonts/IBMPlexSans.ttf",
+  "Source Sans 3": "./assets/fonts/SourceSans3.ttf",
+  "Roboto Condensed": "./assets/fonts/RobotoCondensed.ttf",
+  "Work Sans": "./assets/fonts/WorkSans.ttf",
+  "Libre Baskerville": "./assets/fonts/LibreBaskerville.ttf",
+  "Cormorant Garamond": "./assets/fonts/CormorantGaramond.ttf",
+  "Playfair Display": "./assets/fonts/PlayfairDisplay.ttf",
+  Spectral: "./assets/fonts/Spectral.ttf",
+  "Space Grotesk": "./assets/fonts/SpaceGrotesk.ttf",
+  "Bebas Neue": "./assets/fonts/BebasNeue.ttf",
+  "Archivo Black": "./assets/fonts/ArchivoBlack.ttf",
+  Oswald: "./assets/fonts/Oswald.ttf",
+  Staatliches: "./assets/fonts/Staatliches.ttf",
+  "Unica One": "./assets/fonts/UnicaOne.ttf",
+};
+
 const previewArtwork = [
   {
     disc: "./assets/album-covers/melodic-techno-minimal-album-cover-391x558.png",
@@ -74,7 +92,7 @@ const escapeXml = (value) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-const fontStack = (labelConfig) => `"'${escapeXml(labelConfig.font)}', Arial, sans-serif"`;
+const fontStack = (labelConfig) => `"${escapeXml(labelConfig.font)}"`;
 
 function textLines(value) {
   return String(value)
@@ -119,7 +137,7 @@ function createLabel(overrides = {}) {
     spineBg: "#f4f1e8",
     spineText: "#111820",
     discLayout: "square",
-    caseLayout: "tracks",
+    caseLayout: "image-tracks",
     tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
     spineAuto: true,
     spineFreeform: "BLUE HOUR : MIKA VALE",
@@ -245,6 +263,7 @@ function sheetCopies() {
   const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
   const discBottomXs = [8, 49, 90, 131];
+  const spineBlock = { x: 8, y: 263, gap: 5.4 };
 
   return Array.from({ length: count }, (_, index) => {
     const caseCol = index % 2;
@@ -252,12 +271,12 @@ function sheetCopies() {
     const caseX = caseXs[caseCol];
     const caseY = caseYs[caseRow];
     const discX = index < 4 ? 168 : discBottomXs[index - 4];
-    const discY = index < 4 ? discMainYs[index] : 238.5;
+    const discY = index < 4 ? discMainYs[index] : discMainYs[3];
 
     return {
       disc: labelAt("disc", discX, discY),
       case: labelAt("case", caseX, caseY),
-      spine: { ...labelAt("spine", caseX + 6, caseY + 56.5), rotated: false },
+      spine: { ...labelAt("spine", spineBlock.x, spineBlock.y + index * spineBlock.gap), rotated: false },
     };
   });
 }
@@ -367,14 +386,14 @@ function renderDisc(label, copyIndex, labelConfig) {
   }
 
   if (layout !== "full") {
-    body += `<text x="${label.x + 2.2}" y="${label.y + 5.7}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3.4" font-weight="700">${album}</text>`;
-    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 6.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.6" font-weight="600">${artist}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + 5.7}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3.4" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 6.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.6" font-weight="bold">${artist}</text>`;
     body += `<text x="${label.x + 2.2}" y="${label.y + label.height - 2.6}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.2">${year}</text>`;
   }
 
   body += logoUse(label, "disc", labelConfig);
 
-  return `<clipPath id="${clipId}"><path d="${path}" /></clipPath>${cropMarks(label, true)}<g>${body}</g>`;
+  return `<clipPath id="${clipId}"><path d="${path}" /></clipPath><g>${body}</g>${cropMarks(label, true)}`;
 }
 
 function renderCase(label, copyIndex, labelConfig) {
@@ -391,9 +410,17 @@ function renderCase(label, copyIndex, labelConfig) {
 
   if (layout === "image") {
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), imageBleedBox(label));
+  } else if (layout === "image-tracks") {
+    const img = { x: label.x + 5, y: label.y + 16, width: 27, height: 27 };
+    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 12.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.7" font-weight="bold">${artist} - ${year}</text>`;
+    body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), img);
+    tracks.slice(0, 8).forEach((line, index) => {
+      body += `<text x="${label.x + 36}" y="${label.y + 18 + index * 3.25}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
+    });
   } else {
-    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="700">${album}</text>`;
-    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="600">${artist} - ${year}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="bold">${artist} - ${year}</text>`;
     tracks.slice(0, 12).forEach((line, index) => {
       body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
     });
@@ -401,12 +428,12 @@ function renderCase(label, copyIndex, labelConfig) {
 
   if (layout === "image") {
     body += `<rect x="${label.x + 4}" y="${label.y + 4}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
-    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="700">${album}</text>`;
+    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="bold">${album}</text>`;
     body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
   }
 
   body += logoUse(label, "case", labelConfig);
-  return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath>${cropMarks(label)}<g>${body}</g>`;
+  return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath><g>${body}</g>${cropMarks(label)}`;
 }
 
 function renderSpine(label, labelConfig) {
@@ -421,17 +448,16 @@ function renderSpine(label, labelConfig) {
     return `${cropMarks(label, false, SPINE_CROP_GAP)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
-      <text x="2" y="2.55" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+      <text x="2" y="2.55" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
       ${logoUse(local, "spine", labelConfig)}
     </g>`;
   }
 
-  return `${cropMarks(label, false, SPINE_CROP_GAP)}
-  <g>
+  return `<g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
-    <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
+    <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
     ${logoUse(label, "spine", labelConfig)}
-  </g>`;
+  </g>${cropMarks(label, false, SPINE_CROP_GAP)}`;
 }
 
 function renderSheet() {
@@ -489,7 +515,51 @@ function downloadBlob(name, blob) {
   URL.revokeObjectURL(url);
 }
 
-async function prepareSvgForPdf(svg) {
+function blobToDataUrl(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+function pdfFontFileName(fontFamily) {
+  return `${fontFamily.replace(/[^a-z0-9]/gi, "")}.ttf`;
+}
+
+async function registerPdfFonts(pdf, labelConfigs) {
+  const fontFamilies = [...new Set(labelConfigs.map((labelConfig) => labelConfig.font))];
+
+  await Promise.all(
+    fontFamilies.map(async (fontFamily) => {
+      const path = pdfFonts[fontFamily];
+      if (!path) return;
+
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Unable to load PDF font: ${fontFamily}`);
+
+      const fileName = pdfFontFileName(fontFamily);
+      const base64 = arrayBufferToBase64(await response.arrayBuffer());
+      pdf.addFileToVFS(fileName, base64);
+      pdf.addFont(fileName, fontFamily, "normal");
+      pdf.addFont(fileName, fontFamily, "bold");
+    }),
+  );
+}
+
+async function prepareSvgForExport(svg) {
   const clone = svg.cloneNode(true);
   const images = Array.from(clone.querySelectorAll("image"));
 
@@ -499,18 +569,28 @@ async function prepareSvgForPdf(svg) {
       if (!href || href.startsWith("data:")) return;
 
       const response = await fetch(href);
-      const text = await response.text();
-      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
+      const dataUrl = await blobToDataUrl(await response.blob());
       image.setAttribute("href", dataUrl);
+      image.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataUrl);
     }),
   );
 
   return clone;
 }
 
+async function downloadSvg() {
+  renderSheet();
+  const svg = sheetHost.querySelector("svg");
+  if (!svg) return;
+  const preparedSvg = await prepareSvgForExport(svg);
+  const contents = new XMLSerializer().serializeToString(preparedSvg);
+  download("minidisc-labels.svg", contents, "image/svg+xml");
+}
+
 async function downloadPdf() {
   renderSheet();
   const svg = sheetHost.querySelector("svg");
+  const labelConfigs = sheetCopies().map((_, index) => labelForCopy(index));
   const jsPDF = window.jspdf?.jsPDF;
   const svg2pdf = window.svg2pdf?.svg2pdf || window.svg2pdf;
 
@@ -532,7 +612,8 @@ async function downloadPdf() {
       compress: true,
       hotfixes: ["px_scaling"],
     });
-    const pdfSvg = await prepareSvgForPdf(svg);
+    await registerPdfFonts(pdf, labelConfigs);
+    const pdfSvg = await prepareSvgForExport(svg);
     await svg2pdf(pdfSvg, pdf, { x: 0, y: 0, width: PAGE.width, height: PAGE.height });
     downloadBlob("minidisc-labels.pdf", pdf.output("blob"));
   } catch (error) {
@@ -635,7 +716,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
 controls["sheet-mode"].addEventListener("change", syncSheetMode);
 
 document.getElementById("download-svg").addEventListener("click", () => {
-  download("minidisc-labels.svg", renderSheet(), "image/svg+xml");
+  downloadSvg();
 });
 
 document.getElementById("print-pdf").addEventListener("click", () => {
