@@ -2,6 +2,7 @@ const PT_TO_MM = 0.352777778;
 const PAGE = { width: 210, height: 297 };
 const BLEED = 2;
 const CROP_GAP = 2;
+const SPINE_CROP_GAP = 0.8;
 const CROP_LEN = 2.5;
 const CROP_STROKE = 0.25 * PT_TO_MM;
 
@@ -134,20 +135,20 @@ function sheetCopies() {
   });
 }
 
-function cropMarks(label, includeChamfer = false) {
+function cropMarks(label, includeChamfer = false, gap = CROP_GAP) {
   const left = label.x;
   const right = label.x + label.width;
   const top = label.y;
   const bottom = label.y + label.height;
   const marks = [
-    [left, top - CROP_GAP, left, top - CROP_GAP - CROP_LEN],
-    [left, bottom + CROP_GAP, left, bottom + CROP_GAP + CROP_LEN],
-    [right, top - CROP_GAP, right, top - CROP_GAP - CROP_LEN],
-    [right, bottom + CROP_GAP, right, bottom + CROP_GAP + CROP_LEN],
-    [left - CROP_GAP, top, left - CROP_GAP - CROP_LEN, top],
-    [right + CROP_GAP, top, right + CROP_GAP + CROP_LEN, top],
-    [left - CROP_GAP, bottom, left - CROP_GAP - CROP_LEN, bottom],
-    [right + CROP_GAP, bottom, right + CROP_GAP + CROP_LEN, bottom],
+    [left, top - gap, left, top - gap - CROP_LEN],
+    [left, bottom + gap, left, bottom + gap + CROP_LEN],
+    [right, top - gap, right, top - gap - CROP_LEN],
+    [right, bottom + gap, right, bottom + gap + CROP_LEN],
+    [left - gap, top, left - gap - CROP_LEN, top],
+    [right + gap, top, right + gap + CROP_LEN, top],
+    [left - gap, bottom, left - gap - CROP_LEN, bottom],
+    [right + gap, bottom, right + gap + CROP_LEN, bottom],
   ];
   const lines = marks
     .map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`)
@@ -219,7 +220,6 @@ function renderDisc(label, copyIndex, release) {
   }
 
   body += logoUse(label, "disc");
-  body += `<path d="${path}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />`;
 
   return `<clipPath id="${clipId}"><path d="${path}" /></clipPath>${cropMarks(label, true)}<g>${body}</g>`;
 }
@@ -252,7 +252,6 @@ function renderCase(label, copyIndex, release) {
   }
 
   body += logoUse(label, "case");
-  body += `<rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />`;
   return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath>${cropMarks(label)}<g>${body}</g>`;
 }
 
@@ -265,21 +264,19 @@ function renderSpine(label, release) {
 
   if (label.rotated) {
     const local = { x: 0, y: 0, width: labelSizes.spine.width, height: labelSizes.spine.height };
-    return `${cropMarks(label)}
+    return `${cropMarks(label, false, SPINE_CROP_GAP)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
       <text x="2" y="2.55" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
       ${logoUse(local, "spine")}
-      <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />
     </g>`;
   }
 
-  return `${cropMarks(label)}
+  return `${cropMarks(label, false, SPINE_CROP_GAP)}
   <g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
     <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack()} font-size="2.1" font-weight="700">${escapeXml(spineText)}</text>
     ${logoUse(label, "spine")}
-    <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="none" stroke="#9aa0a6" stroke-width="${CROP_STROKE}" />
   </g>`;
 }
 
