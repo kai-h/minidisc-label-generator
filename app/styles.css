@@ -104,6 +104,16 @@ label {
   line-height: 1.35;
 }
 
+.hint.multiline,
+.hint.multiline span {
+  display: block;
+}
+
+.hint strong {
+  color: #43505c;
+  font-weight: 700;
+}
+
 .hidden {
   display: none;
 }
