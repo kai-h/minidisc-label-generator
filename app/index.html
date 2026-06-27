@@ -16,9 +16,10 @@
           <div>
             <h1>MiniDisc Labels</h1>
           </div>
-          <button id="print-pdf" class="icon-button primary" type="button" title="Export PDF">
-            Export PDF
-          </button>
+        </div>
+        <div class="export-actions">
+          <button id="print-pdf" class="primary" type="button" title="Export PDF">Export PDF</button>
+          <button id="download-svg" type="button">Download SVG</button>
         </div>
 
         <section class="control-section">
@@ -135,7 +136,16 @@
           </label>
           <label>
             Disc image
-            <input id="disc-image" type="file" accept="image/*" />
+            <span class="file-control">
+              <input id="disc-image" type="file" accept="image/*" />
+              <button id="clear-disc-image" class="trash-button hidden" type="button" title="Clear disc image" aria-label="Clear disc image">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M9 4h6l1 2h4v2H4V6h4l1-2Z" />
+                  <path d="M7 10h10l-.7 10H7.7L7 10Z" />
+                  <path d="M10 12v6M14 12v6" />
+                </svg>
+              </button>
+            </span>
             <span class="hint multiline">
               <strong>Full label image:</strong>
               <span>320 x 472 px to 360 x 531 px at trim size, or</span>
@@ -155,14 +165,23 @@
           </label>
           <label>
             Case image
-            <input id="case-image" type="file" accept="image/*" />
+            <span class="file-control">
+              <input id="case-image" type="file" accept="image/*" />
+              <button id="clear-case-image" class="trash-button hidden" type="button" title="Clear case image" aria-label="Clear case image">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M9 4h6l1 2h4v2H4V6h4l1-2Z" />
+                  <path d="M7 10h10l-.7 10H7.7L7 10Z" />
+                  <path d="M10 12v6M14 12v6" />
+                </svg>
+              </button>
+            </span>
             <span class="hint multiline">
               <strong>Full case image:</strong>
               <span>640 x 469 px to 700 x 513 px at trim size, or</span>
               <span>680 x 508 px to 740 x 552 px with 2 mm bleed.</span>
             </span>
           </label>
-          <label>
+          <label id="tracklisting-field">
             Tracklisting
             <textarea id="tracks" rows="7">01 Night Drive
 02 Glass Station
@@ -219,11 +238,6 @@
             </label>
           </div>
         </section>
-
-        <div class="actions">
-          <button id="download-svg" type="button">Download SVG</button>
-          <button id="reset-art" type="button">Clear Images</button>
-        </div>
       </aside>
 
       <section class="preview-wrap" aria-label="A4 print preview">

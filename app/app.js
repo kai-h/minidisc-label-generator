@@ -1,6 +1,7 @@
 const PT_TO_MM = 0.352777778;
 const PAGE = { width: 210, height: 297 };
 const BLEED = 2;
+const IMAGE_BLEED = 1;
 const CROP_GAP = 2;
 const SPINE_CROP_GAP = 0.8;
 const CROP_LEN = 2.5;
@@ -152,6 +153,8 @@ function syncLabelControls() {
   controls["case-image"].value = "";
   state.isSyncingControls = false;
   syncSpineFreeform();
+  syncTracklisting();
+  syncImageClearButtons();
 }
 
 function syncLabelPicker() {
@@ -191,6 +194,15 @@ function bleedBox(label) {
     y: label.y - BLEED,
     width: label.width + BLEED * 2,
     height: label.height + BLEED * 2,
+  };
+}
+
+function imageBleedBox(label) {
+  return {
+    x: label.x - IMAGE_BLEED,
+    y: label.y - IMAGE_BLEED,
+    width: label.width + IMAGE_BLEED * 2,
+    height: label.height + IMAGE_BLEED * 2,
   };
 }
 
@@ -318,7 +330,7 @@ function renderDisc(label, copyIndex, labelConfig) {
     <path d="${path}" fill="${bg}" />`;
 
   if (layout === "full") {
-    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.discImage || previewArtwork.disc, bleedBox(label))}</g>`;
+    body += imageFill(labelConfig.discImage || previewArtwork.disc, imageBleedBox(label));
   } else if (layout === "square") {
     const size = 31.5;
     const img = { x: label.x + 2.1, y: label.y + 10.6, width: size, height: size };
@@ -349,7 +361,7 @@ function renderCase(label, copyIndex, labelConfig) {
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
   if (layout === "image") {
-    body += `<g clip-path="url(#${clipId})">${imageFill(labelConfig.caseImage || previewArtwork.case, bleedBox(label))}</g>`;
+    body += imageFill(labelConfig.caseImage || previewArtwork.case, imageBleedBox(label));
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="700">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="600">${artist} - ${year}</text>`;
@@ -424,6 +436,16 @@ function syncSpineFreeform() {
   document.getElementById("spine-freeform-field").classList.toggle("hidden", controls["spine-auto"].checked);
 }
 
+function syncTracklisting() {
+  document.getElementById("tracklisting-field").classList.toggle("hidden", controls["case-layout"].value === "image");
+}
+
+function syncImageClearButtons() {
+  const labelConfig = state.labels[state.selectedIndex];
+  document.getElementById("clear-disc-image").classList.toggle("hidden", !labelConfig?.discImage);
+  document.getElementById("clear-case-image").classList.toggle("hidden", !labelConfig?.caseImage);
+}
+
 function download(name, contents, type) {
   const blob = new Blob([contents], { type });
   downloadBlob(name, blob);
@@ -496,6 +518,15 @@ async function downloadPdf() {
 async function handleImageUpload(event, key) {
   saveSelectedLabel();
   state.labels[state.selectedIndex][key] = await fileToDataUrl(event.target.files[0]);
+  syncImageClearButtons();
+  renderSheet();
+}
+
+function clearImage(key, inputId) {
+  saveSelectedLabel();
+  state.labels[state.selectedIndex][key] = "";
+  controls[inputId].value = "";
+  syncImageClearButtons();
   renderSheet();
 }
 
@@ -551,6 +582,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
       syncLabelPicker();
     }
     if (el.id === "spine-auto") syncSpineFreeform();
+    if (el.id === "case-layout") syncTracklisting();
     renderSheet();
   });
   el.addEventListener("change", () => {
@@ -561,6 +593,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
       syncLabelPicker();
     }
     if (el.id === "spine-auto") syncSpineFreeform();
+    if (el.id === "case-layout") syncTracklisting();
     renderSheet();
   });
 });
@@ -575,13 +608,12 @@ document.getElementById("print-pdf").addEventListener("click", () => {
   downloadPdf();
 });
 
-document.getElementById("reset-art").addEventListener("click", () => {
-  saveSelectedLabel();
-  state.labels[state.selectedIndex].discImage = "";
-  state.labels[state.selectedIndex].caseImage = "";
-  controls["disc-image"].value = "";
-  controls["case-image"].value = "";
-  renderSheet();
+document.getElementById("clear-disc-image").addEventListener("click", () => {
+  clearImage("discImage", "disc-image");
+});
+
+document.getElementById("clear-case-image").addEventListener("click", () => {
+  clearImage("caseImage", "case-image");
 });
 
 state.labels = [
@@ -610,4 +642,6 @@ syncLabelPicker();
 syncLabelControls();
 syncSheetMode();
 syncSpineFreeform();
+syncTracklisting();
+syncImageClearButtons();
 renderSheet();
