@@ -475,8 +475,8 @@ function renderCase(label, copyIndex, labelConfig) {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 12.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.7" font-weight="bold">${artist} - ${year}</text>`;
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), img);
-    tracks.slice(0, 8).forEach((line, index) => {
-      body += `<text x="${label.x + 36}" y="${label.y + 18 + index * 3.25}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
+    tracks.slice(0, 12).forEach((line, index) => {
+      body += `<text x="${label.x + 36}" y="${label.y + 18 + index * 3}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
     });
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="bold">${album}</text>`;
