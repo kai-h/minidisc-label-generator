@@ -76,6 +76,57 @@ const previewArtwork = [
   },
 ];
 
+const previewPalettes = [
+  {
+    discBg: "#f1e5d3",
+    discText: "#172130",
+    caseBg: "#111820",
+    caseText: "#f5efe4",
+    spineBg: "#efe3cf",
+    spineText: "#172130",
+  },
+  {
+    discBg: "#17142b",
+    discText: "#ffd6f3",
+    caseBg: "#120f25",
+    caseText: "#fdd7fb",
+    spineBg: "#f5d5ef",
+    spineText: "#191129",
+  },
+  {
+    discBg: "#efe0c9",
+    discText: "#32271d",
+    caseBg: "#2b241d",
+    caseText: "#f4e7d2",
+    spineBg: "#ead9be",
+    spineText: "#2b241d",
+  },
+  {
+    discBg: "#dce8e2",
+    discText: "#223548",
+    caseBg: "#172637",
+    caseText: "#ecf2ec",
+    spineBg: "#d9e7e0",
+    spineText: "#213344",
+  },
+  {
+    discBg: "#1d132d",
+    discText: "#ffb5e8",
+    caseBg: "#11101f",
+    caseText: "#fbd0ee",
+    spineBg: "#241331",
+    spineText: "#ffcaef",
+  },
+  {
+    discBg: "#d6c0a2",
+    discText: "#241f1b",
+    caseBg: "#211b17",
+    caseText: "#f1dec2",
+    spineBg: "#d8bea0",
+    spineText: "#241f1b",
+  },
+];
+
 const controls = {};
 document.querySelectorAll("input, select, textarea").forEach((el) => {
   controls[el.id] = el;
@@ -125,17 +176,13 @@ function currentLabelFromControls() {
 }
 
 function createLabel(overrides = {}) {
+  const previewIndex = overrides.previewIndex || 0;
   return {
     album: "Blue Hour",
     artist: "Mika Vale",
     year: "2026",
     font: "Inter",
-    discBg: "#f7f2e8",
-    discText: "#18202a",
-    caseBg: "#111820",
-    caseText: "#f4f1e8",
-    spineBg: "#f4f1e8",
-    spineText: "#111820",
+    ...previewPalette(previewIndex),
     discLayout: "square",
     caseLayout: "image-tracks",
     tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
@@ -143,7 +190,7 @@ function createLabel(overrides = {}) {
     spineFreeform: "BLUE HOUR : MIKA VALE",
     discImage: "",
     caseImage: "",
-    previewIndex: 0,
+    previewIndex,
     ...overrides,
   };
 }
@@ -151,6 +198,10 @@ function createLabel(overrides = {}) {
 function previewImage(labelConfig, placement) {
   const index = labelConfig.previewIndex % previewArtwork.length;
   return previewArtwork[index][placement];
+}
+
+function previewPalette(index) {
+  return previewPalettes[index % previewPalettes.length];
 }
 
 function syncLogoSettings() {
@@ -302,8 +353,7 @@ function cropMarks(label, includeChamfer = false, gap = CROP_GAP) {
     .join("");
 
   const chamfer = includeChamfer
-    ? `<line x1="${label.x}" y1="${label.y + label.chamfer}" x2="${label.x + label.chamfer}" y2="${label.y}" />
-       <line x1="${label.x + label.chamfer + 0.5}" y1="${label.y + 0.5}" x2="${label.x + label.chamfer + 2.2}" y2="${label.y + 2.2}" />`
+    ? `<line x1="${label.x}" y1="${label.y + label.chamfer}" x2="${label.x + label.chamfer}" y2="${label.y}" />`
     : "";
 
   return `<g class="crop-marks">${lines}${chamfer}</g>`;
