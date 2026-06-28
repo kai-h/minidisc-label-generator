@@ -323,14 +323,23 @@ function caseLabelFor(label, labelConfig) {
   return { ...label, width: size.width, height: size.height };
 }
 
-function sheetCopies() {
+function caseHeightFor(labelConfig) {
+  return labelConfig?.caseFormat === "j-card" ? labelSizes.jCard.height : labelSizes.case.height;
+}
+
+function sheetCopies(labelConfigs = []) {
   const count = Number(controls.copies.value);
   const caseXs = [8, 86];
   const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
   const discBottomXs = [83, 124, 165, 165];
   const usedCaseRows = Math.ceil(count / 2);
-  const spineBlock = { x: 8, y: caseYs[usedCaseRows] || 203, gap: 5.4 };
+  const caseBottoms = Array.from({ length: count }, (_, index) => {
+    const row = Math.floor(index / 2);
+    return caseYs[row] + caseHeightFor(labelConfigs[index]);
+  });
+  const spineY = caseBottoms.length ? Math.max(...caseBottoms) + 5 : caseYs[usedCaseRows] || 203;
+  const spineBlock = { x: 8, y: spineY, gap: 5.4 };
 
   return Array.from({ length: count }, (_, index) => {
     const caseCol = index % 2;
@@ -552,8 +561,9 @@ function renderSpine(label, labelConfig) {
 }
 
 function renderSheet() {
-  const copies = sheetCopies();
-  const labelConfigs = copies.map((_, index) => labelForCopy(index));
+  const count = Number(controls.copies.value);
+  const labelConfigs = Array.from({ length: count }, (_, index) => labelForCopy(index));
+  const copies = sheetCopies(labelConfigs);
   const cases = copies.map((copy, index) => renderCase(copy.case, index, labelConfigs[index])).join("");
   const spines = copies.map((copy, index) => renderSpine(copy.spine, labelConfigs[index])).join("");
   const discs = copies.map((copy, index) => renderDisc(copy.disc, index, labelConfigs[index])).join("");
