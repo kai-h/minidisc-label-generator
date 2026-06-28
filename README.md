@@ -21,3 +21,6 @@ This repo includes a GitHub Actions workflow that publishes the `app/` folder to
 5. Set **Source** to **GitHub Actions**.
 
 After the workflow finishes, GitHub will show the public Pages URL in the deployment summary.
+
+If you find this tool useful and want to donate something, feel free to buy me a hot chocolate on Ko-fi
+<https://ko-fi.com/kaiserh>
