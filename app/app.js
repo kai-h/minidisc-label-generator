@@ -2,6 +2,7 @@ const PT_TO_MM = 0.352777778;
 const PAGE = { width: 210, height: 297 };
 const BLEED = 2;
 const IMAGE_BLEED = 1;
+const SPINE_BLEED = 0.5;
 const CROP_GAP = 2;
 const SPINE_CROP_GAP = 0.8;
 const CROP_LEN = 2.5;
@@ -508,14 +509,14 @@ function renderSpine(label, labelConfig) {
     const local = { x: 0, y: 0, width: labelSizes.spine.width, height: labelSizes.spine.height };
     return `${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
-      <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
-      <text x="2" y="2" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
+      <rect x="${-SPINE_BLEED}" y="${-SPINE_BLEED}" width="${local.width + SPINE_BLEED * 2}" height="${local.height + SPINE_BLEED * 2}" fill="${bg}" />
+      <text x="2" y="2.5" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
     </g>`;
   }
 
   return `<g>
-    <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
-    <text x="${label.x + 2}" y="${label.y + 2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
+    <rect x="${label.x - SPINE_BLEED}" y="${label.y - SPINE_BLEED}" width="${label.width + SPINE_BLEED * 2}" height="${label.height + SPINE_BLEED * 2}" fill="${bg}" />
+    <text x="${label.x + 2}" y="${label.y + 2.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
   </g>${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}`;
 }
 
