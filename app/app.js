@@ -10,9 +10,9 @@ const SPINE_CROP_LEN = 1.1;
 const CROP_STROKE = 0.5 * PT_TO_MM;
 
 const labelSizes = {
-  disc: { width: 36.7, height: 53.7, chamfer: 1.5 },
+  disc: { width: 36.7, height: 55.7, chamfer: 1.5 },
   spine: { width: 59, height: 3.5 },
-  case: { width: 71, height: 56 },
+  case: { width: 71, height: 60 },
 };
 
 const state = {
@@ -479,14 +479,14 @@ function renderCase(label, copyIndex, labelConfig) {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 12.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.7" font-weight="bold">${artist} - ${year}</text>`;
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), img);
-    tracks.slice(0, 12).forEach((line, index) => {
+    tracks.slice(0, 13).forEach((line, index) => {
       body += `<text x="${label.x + 36}" y="${label.y + 18 + index * 3}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
     });
   } else {
     body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="bold">${album}</text>`;
     body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="bold">${artist} - ${year}</text>`;
-    tracks.slice(0, 12).forEach((line, index) => {
-      body += `<text x="${label.x + 5}" y="${label.y + 22 + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
+    tracks.slice(0, 13).forEach((line, index) => {
+      body += `<text x="${label.x + 5}" y="${label.y + 20 + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
     });
   }
 
