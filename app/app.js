@@ -509,13 +509,13 @@ function renderSpine(label, labelConfig) {
     return `${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
-      <text x="2" y="1.75" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
+      <text x="2" y="2" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
     </g>`;
   }
 
   return `<g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
-    <text x="${label.x + 2}" y="${label.y + 1.75}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
+    <text x="${label.x + 2}" y="${label.y + 2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${escapeXml(spineText)}</text>
   </g>${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}`;
 }
 
