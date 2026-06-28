@@ -60,6 +60,7 @@ textarea {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -76,6 +77,14 @@ h2 {
   letter-spacing: 0;
   text-transform: uppercase;
   color: #39434d;
+}
+
+h3 {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 p {
