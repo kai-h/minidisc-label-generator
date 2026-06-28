@@ -80,10 +80,10 @@ h2 {
 }
 
 h3 {
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -281,11 +281,13 @@ button:hover {
 
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 16px 24px;
+  max-width: 900px;
+  margin: 40px auto 32px;
+  padding: 18px 24px 0;
   background: var(--panel);
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.6;
   text-align: center;
 }
 
