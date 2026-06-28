@@ -160,6 +160,13 @@
         <section class="control-section">
           <h2>Case Label</h2>
           <label>
+            Format
+            <select id="case-format">
+              <option value="case">Case label</option>
+              <option value="j-card">J card</option>
+            </select>
+          </label>
+          <label>
             Layout
             <select id="case-layout">
               <option value="image">Image</option>
@@ -180,9 +187,9 @@
               </button>
             </span>
             <span class="hint multiline">
-              <strong>Full case image:</strong>
-              <span>640 x 541 px to 700 x 592 px at trim size, or</span>
-              <span>680 x 580 px to 740 x 632 px with 2 mm bleed.</span>
+              <strong id="case-image-size-title">Full case image:</strong>
+              <span id="case-image-trim-size">640 x 541 px to 700 x 592 px at trim size, or</span>
+              <span id="case-image-bleed-size">680 x 580 px to 740 x 632 px with 2 mm bleed.</span>
             </span>
           </label>
           <label id="tracklisting-field">

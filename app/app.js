@@ -8,11 +8,13 @@ const SPINE_CROP_GAP = 0.8;
 const CROP_LEN = 2.5;
 const SPINE_CROP_LEN = 1.1;
 const CROP_STROKE = 0.5 * PT_TO_MM;
+const J_CARD_SCORE_Y = 5;
 
 const labelSizes = {
   disc: { width: 36.7, height: 55.7, chamfer: 1.5 },
   spine: { width: 59, height: 3.5 },
   case: { width: 71, height: 60 },
+  jCard: { width: 68, height: 64 },
 };
 
 const state = {
@@ -167,6 +169,7 @@ function currentLabelFromControls() {
     spineBg: controls["spine-bg"].value,
     spineText: controls["spine-text"].value,
     discLayout: controls["disc-layout"].value,
+    caseFormat: controls["case-format"].value,
     caseLayout: controls["case-layout"].value,
     tracks: textLines(controls.tracks.value),
     spineAuto: controls["spine-auto"].checked,
@@ -190,6 +193,7 @@ function createLabel(overrides = {}) {
     font: "Inter",
     ...previewPalette(previewIndex),
     discLayout: "square",
+    caseFormat: "case",
     caseLayout: "image-tracks",
     tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
     spineAuto: true,
@@ -243,6 +247,7 @@ function syncLabelControls() {
   controls["spine-bg"].value = labelConfig.spineBg;
   controls["spine-text"].value = labelConfig.spineText;
   controls["disc-layout"].value = labelConfig.discLayout;
+  controls["case-format"].value = labelConfig.caseFormat || "case";
   controls["case-layout"].value = labelConfig.caseLayout;
   controls.tracks.value = labelConfig.tracks.join("\n");
   controls["spine-auto"].checked = labelConfig.spineAuto;
@@ -256,6 +261,7 @@ function syncLabelControls() {
   state.isSyncingControls = false;
   syncSpineFreeform();
   syncTracklisting();
+  syncCaseFormatHint();
   syncImageClearButtons();
 }
 
@@ -312,6 +318,11 @@ function labelAt(kind, x, y) {
   return { ...labelSizes[kind], x, y };
 }
 
+function caseLabelFor(label, labelConfig) {
+  const size = labelConfig.caseFormat === "j-card" ? labelSizes.jCard : labelSizes.case;
+  return { ...label, width: size.width, height: size.height };
+}
+
 function sheetCopies() {
   const count = Number(controls.copies.value);
   const caseXs = [8, 86];
@@ -362,6 +373,15 @@ function cropMarks(label, includeChamfer = false, gap = CROP_GAP, length = CROP_
     : "";
 
   return `<g class="crop-marks">${lines}${chamfer}</g>`;
+}
+
+function jCardFoldMarks(label) {
+  const y = label.y + J_CARD_SCORE_Y;
+  return `<g class="fold-marks">
+    <line x1="${label.x}" y1="${y}" x2="${label.x + label.width}" y2="${y}" />
+    <line x1="${label.x - CROP_GAP - CROP_LEN}" y1="${y}" x2="${label.x - CROP_GAP}" y2="${y}" />
+    <line x1="${label.x + label.width + CROP_GAP}" y1="${y}" x2="${label.x + label.width + CROP_GAP + CROP_LEN}" y2="${y}" />
+  </g>`;
 }
 
 function imageFill(href, box, mode = "cover") {
@@ -461,6 +481,7 @@ function renderDisc(label, copyIndex, labelConfig) {
 }
 
 function renderCase(label, copyIndex, labelConfig) {
+  label = caseLabelFor(label, labelConfig);
   const clipId = `case-clip-${copyIndex}`;
   const bg = labelConfig.caseBg;
   const text = labelConfig.caseText;
@@ -469,6 +490,8 @@ function renderCase(label, copyIndex, labelConfig) {
   const artist = escapeXml(labelConfig.artist);
   const year = escapeXml(labelConfig.year);
   const tracks = labelConfig.tracks || [];
+  const isJCard = labelConfig.caseFormat === "j-card";
+  const spineCopy = escapeXml(labelConfig.spineAuto ? `${labelConfig.album} : ${labelConfig.artist}` : labelConfig.spineFreeform);
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
 
@@ -496,8 +519,14 @@ function renderCase(label, copyIndex, labelConfig) {
     body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
   }
 
+  if (isJCard) {
+    body += `<rect x="${label.x}" y="${label.y}" width="${label.width}" height="${J_CARD_SCORE_Y}" fill="${bg}" />`;
+    body += `<text x="${label.x + 3}" y="${label.y + J_CARD_SCORE_Y / 2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${spineCopy}</text>`;
+  }
+
   body += logoUse(label, "case", labelConfig);
-  return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath><g>${body}</g>${cropMarks(label)}`;
+  const foldMarks = isJCard ? jCardFoldMarks(label) : "";
+  return `<clipPath id="${clipId}"><rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" /></clipPath><g>${body}</g>${cropMarks(label)}${foldMarks}`;
 }
 
 function renderSpine(label, labelConfig) {
@@ -532,6 +561,7 @@ function renderSheet() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.width}mm" height="${PAGE.height}mm" viewBox="0 0 ${PAGE.width} ${PAGE.height}">
     <style>
       .crop-marks line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; vector-effect: non-scaling-stroke; }
+      .fold-marks line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; stroke-dasharray: 1.2 0.8; vector-effect: non-scaling-stroke; }
       text { dominant-baseline: alphabetic; }
     </style>
     <rect width="${PAGE.width}" height="${PAGE.height}" fill="#fff" />
@@ -555,6 +585,17 @@ function syncSpineFreeform() {
 
 function syncTracklisting() {
   document.getElementById("tracklisting-field").classList.toggle("hidden", controls["case-layout"].value === "image");
+}
+
+function syncCaseFormatHint() {
+  const isJCard = controls["case-format"].value === "j-card";
+  document.getElementById("case-image-size-title").textContent = isJCard ? "Full J card image:" : "Full case image:";
+  document.getElementById("case-image-trim-size").textContent = isJCard
+    ? "640 x 602 px to 700 x 659 px at trim size, or"
+    : "640 x 541 px to 700 x 592 px at trim size, or";
+  document.getElementById("case-image-bleed-size").textContent = isJCard
+    ? "680 x 642 px to 740 x 699 px with 2 mm bleed."
+    : "680 x 580 px to 740 x 632 px with 2 mm bleed.";
 }
 
 function syncImageClearButtons() {
@@ -912,6 +953,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
     }
     if (el.id === "spine-auto") syncSpineFreeform();
     if (el.id === "case-layout") syncTracklisting();
+    if (el.id === "case-format") syncCaseFormatHint();
     renderSheet();
   });
   el.addEventListener("change", () => {
@@ -924,6 +966,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
     }
     if (el.id === "spine-auto") syncSpineFreeform();
     if (el.id === "case-layout") syncTracklisting();
+    if (el.id === "case-format") syncCaseFormatHint();
     renderSheet();
   });
 });
