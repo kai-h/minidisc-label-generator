@@ -9,6 +9,7 @@ const CROP_LEN = 2.5;
 const SPINE_CROP_LEN = 1.1;
 const CROP_STROKE = 0.5 * PT_TO_MM;
 const J_CARD_SCORE_Y = 5;
+const CASE_ROW_GAP = 5;
 
 const labelSizes = {
   disc: { width: 36.7, height: 55.7, chamfer: 1.5 },
@@ -330,12 +331,20 @@ function caseHeightFor(labelConfig) {
 function sheetCopies(labelConfigs = []) {
   const count = Number(controls.copies.value);
   const caseXs = [8, 86];
-  const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
   const discBottomXs = [83, 124, 165, 165];
   const usedCaseRows = Math.ceil(count / 2);
-  const tallestCase = Math.max(...Array.from({ length: count }, (_, index) => caseHeightFor(labelConfigs[index])));
-  const spineY = count ? caseYs[usedCaseRows - 1] + tallestCase + 5 : caseYs[usedCaseRows] || 203;
+  const caseRowHeights = Array.from({ length: usedCaseRows }, (_, row) =>
+    Math.max(
+      caseHeightFor(labelConfigs[row * 2]),
+      row * 2 + 1 < count ? caseHeightFor(labelConfigs[row * 2 + 1]) : 0,
+    )
+  );
+  const caseYs = caseRowHeights.reduce((rows, height, index) => {
+    rows.push(index === 0 ? 8 : rows[index - 1] + caseRowHeights[index - 1] + CASE_ROW_GAP);
+    return rows;
+  }, []);
+  const spineY = count ? caseYs[usedCaseRows - 1] + caseRowHeights[usedCaseRows - 1] + CASE_ROW_GAP : 203;
   const spineBlock = { x: 8, y: spineY, gap: 5.4 };
 
   return Array.from({ length: count }, (_, index) => {
