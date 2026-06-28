@@ -281,13 +281,11 @@ button:hover {
 
 .site-footer {
   border-top: 1px solid var(--line);
-  max-width: 900px;
-  margin: 40px auto 32px;
-  padding: 18px 24px 0;
+  padding: 10px 24px;
   background: var(--panel);
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.4;
   text-align: center;
 }
 
