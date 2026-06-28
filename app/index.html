@@ -20,6 +20,9 @@
         <div class="export-actions">
           <button id="print-pdf" class="primary" type="button" title="Export PDF">Export PDF</button>
           <button id="download-svg" type="button">Download SVG</button>
+          <button id="save-project" type="button">Save Project</button>
+          <button id="load-project" type="button">Load Project</button>
+          <input id="project-file" class="hidden" type="file" accept="application/json,.json" />
         </div>
 
         <section class="control-section">
@@ -213,6 +216,7 @@
               <option value="auto" selected>Auto contrast</option>
               <option value="black">Black logo</option>
               <option value="white">White logo</option>
+              <option value="emoji">Emoji 💽</option>
               <option value="none">No logo</option>
             </select>
           </label>
@@ -232,10 +236,6 @@
             <label class="checkbox">
               <input id="logo-case" type="checkbox" checked />
               <span>Case</span>
-            </label>
-            <label class="checkbox">
-              <input id="logo-spine" type="checkbox" />
-              <span>Spine</span>
             </label>
           </div>
         </section>

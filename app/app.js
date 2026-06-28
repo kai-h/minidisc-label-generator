@@ -17,13 +17,6 @@ const state = {
   labels: [],
   selectedIndex: 0,
   isSyncingControls: false,
-  logo: {
-    style: "auto",
-    corner: "bottom-right",
-    disc: true,
-    case: true,
-    spine: false,
-  },
 };
 
 const builtInLogos = {
@@ -132,7 +125,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
   controls[el.id] = el;
 });
 
-const LOGO_CONTROL_IDS = new Set(["logo-style", "logo-corner", "logo-disc", "logo-case", "logo-spine"]);
+const LOGO_CONTROL_IDS = new Set(["logo-style", "logo-corner", "logo-disc", "logo-case"]);
 
 const sheetHost = document.getElementById("sheet-host");
 
@@ -144,6 +137,13 @@ const escapeXml = (value) =>
     .replaceAll('"', "&quot;");
 
 const fontStack = (labelConfig) => `"${escapeXml(labelConfig.font)}"`;
+
+const defaultLogoSettings = () => ({
+  logoStyle: "auto",
+  logoCorner: "bottom-right",
+  logoDisc: true,
+  logoCase: true,
+});
 
 function textLines(value) {
   return String(value)
@@ -172,6 +172,10 @@ function currentLabelFromControls() {
     discImage: state.labels[state.selectedIndex]?.discImage || "",
     caseImage: state.labels[state.selectedIndex]?.caseImage || "",
     previewIndex: state.labels[state.selectedIndex]?.previewIndex || 0,
+    logoStyle: controls["logo-style"].value,
+    logoCorner: controls["logo-corner"].value,
+    logoDisc: controls["logo-disc"].checked,
+    logoCase: controls["logo-case"].checked,
   };
 }
 
@@ -191,6 +195,7 @@ function createLabel(overrides = {}) {
     discImage: "",
     caseImage: "",
     previewIndex,
+    ...defaultLogoSettings(),
     ...overrides,
   };
 }
@@ -208,13 +213,6 @@ function syncLogoSettings() {
   if (controls["logo-corner"].value === "top-left") {
     controls["logo-corner"].value = "bottom-right";
   }
-  state.logo = {
-    style: controls["logo-style"].value,
-    corner: controls["logo-corner"].value,
-    disc: controls["logo-disc"].checked,
-    case: controls["logo-case"].checked,
-    spine: controls["logo-spine"].checked,
-  };
 }
 
 function saveSelectedLabel() {
@@ -247,6 +245,10 @@ function syncLabelControls() {
   controls.tracks.value = labelConfig.tracks.join("\n");
   controls["spine-auto"].checked = labelConfig.spineAuto;
   controls["spine-freeform"].value = labelConfig.spineFreeform;
+  controls["logo-style"].value = labelConfig.logoStyle || "auto";
+  controls["logo-corner"].value = labelConfig.logoCorner || "bottom-right";
+  controls["logo-disc"].checked = labelConfig.logoDisc ?? true;
+  controls["logo-case"].checked = labelConfig.logoCase ?? true;
   controls["disc-image"].value = "";
   controls["case-image"].value = "";
   state.isSyncingControls = false;
@@ -392,12 +394,12 @@ function colorLuminance(hex) {
 }
 
 function logoEnabled(placement) {
-  return Boolean(state.logo[placement]);
+  return placement !== "spine";
 }
 
 function logoHref(placement, labelConfig) {
-  const style = state.logo.style;
-  if (style === "none") return "";
+  const style = labelConfig.logoStyle || "auto";
+  if (style === "none" || style === "emoji") return "";
   if (style === "black" || style === "white") return builtInLogos[style];
 
   const bg = labelConfig[`${placement}Bg`] || labelConfig.caseBg;
@@ -406,13 +408,20 @@ function logoHref(placement, labelConfig) {
 
 function logoUse(label, placement, labelConfig) {
   const href = logoHref(placement, labelConfig);
-  if (!href || !logoEnabled(placement)) return "";
-  const width = placement === "spine" ? 10 : 12;
-  const height = placement === "spine" ? 2.3 : 5;
-  const margin = placement === "spine" ? 0.6 : 1.2;
-  const corner = placement === "disc" && state.logo.corner === "bottom-left" ? "bottom-right" : state.logo.corner;
-  const x = corner.endsWith("left") ? label.x + margin : label.x + label.width - width - margin;
-  const y = corner.startsWith("top") ? label.y + margin : label.y + label.height - height - margin;
+  const logoStyle = labelConfig.logoStyle || "auto";
+  if (!logoEnabled(placement) || !labelConfig[`logo${placement[0].toUpperCase()}${placement.slice(1)}`]) return "";
+  if (!href && logoStyle !== "emoji") return "";
+  const width = 12;
+  const height = 5;
+  const corner = placement === "disc" && labelConfig.logoCorner === "bottom-left" ? "bottom-right" : labelConfig.logoCorner || "bottom-right";
+  const marginX = corner.endsWith("right") ? 0.35 : 1.2;
+  const marginY = 1.2;
+  const x = corner.endsWith("left") ? label.x + marginX : label.x + label.width - width - marginX;
+  const y = corner.startsWith("top") ? label.y + marginY : label.y + label.height - height - marginY;
+  if (logoStyle === "emoji") {
+    const fontSize = 4.6;
+    return `<text x="${x + width / 2}" y="${y + height * 0.8}" text-anchor="middle" fill="${labelConfig[`${placement}Text`] || labelConfig.caseText}" font-size="${fontSize}">💽</text>`;
+  }
   return `<image href="${href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`;
 }
 
@@ -500,14 +509,12 @@ function renderSpine(label, labelConfig) {
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
       <text x="2" y="2.55" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
-      ${logoUse(local, "spine", labelConfig)}
     </g>`;
   }
 
   return `<g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
     <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
-    ${logoUse(label, "spine", labelConfig)}
   </g>${cropMarks(label, false, SPINE_CROP_GAP)}`;
 }
 
@@ -780,6 +787,68 @@ function clearImage(key, inputId) {
   renderSheet();
 }
 
+function projectData() {
+  saveSelectedLabel();
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    sheet: {
+      mode: controls["sheet-mode"].value,
+      copies: controls.copies.value,
+      selectedIndex: state.selectedIndex,
+    },
+    labels: state.labels.map((labelConfig) => ({
+      ...labelConfig,
+      tracks: [...labelConfig.tracks],
+    })),
+  };
+}
+
+function normalizeProjectLabel(labelConfig, index, legacyLogo = {}) {
+  const logoDefaults = {
+    logoStyle: legacyLogo.style || "auto",
+    logoCorner: legacyLogo.corner || "bottom-right",
+    logoDisc: legacyLogo.disc ?? true,
+    logoCase: legacyLogo.case ?? true,
+  };
+  return createLabel({
+    ...logoDefaults,
+    ...labelConfig,
+    tracks: Array.isArray(labelConfig.tracks) ? labelConfig.tracks : textLines(labelConfig.tracks || ""),
+    previewIndex: Number.isFinite(Number(labelConfig.previewIndex)) ? Number(labelConfig.previewIndex) : index % previewArtwork.length,
+  });
+}
+
+function saveProject() {
+  const contents = JSON.stringify(projectData(), null, 2);
+  download("minidisc-labels-project.json", contents, "application/json");
+}
+
+async function loadProjectFile(event) {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+
+  try {
+    const project = JSON.parse(await file.text());
+    if (!Array.isArray(project.labels) || !project.labels.length) throw new Error("Project has no labels");
+
+    state.labels = project.labels.map((labelConfig, index) => normalizeProjectLabel(labelConfig, index, project.logo));
+    state.selectedIndex = Math.min(Math.max(Number(project.sheet?.selectedIndex) || 0, 0), state.labels.length - 1);
+
+    controls["sheet-mode"].value = project.sheet?.mode || "multiple";
+    controls.copies.value = project.sheet?.copies || "6";
+
+    syncLabelPicker();
+    syncLabelControls();
+    syncSheetMode();
+    renderSheet();
+  } catch (error) {
+    console.error(error);
+    window.alert("That project file could not be loaded.");
+  }
+}
+
 controls["disc-image"].addEventListener("change", (event) => handleImageUpload(event, "discImage"));
 controls["case-image"].addEventListener("change", (event) => handleImageUpload(event, "caseImage"));
 
@@ -832,6 +901,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
   el.addEventListener("input", () => {
     if (LOGO_CONTROL_IDS.has(el.id)) {
       syncLogoSettings();
+      saveSelectedLabel();
     } else {
       saveSelectedLabel();
       syncLabelPicker();
@@ -843,6 +913,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
   el.addEventListener("change", () => {
     if (LOGO_CONTROL_IDS.has(el.id)) {
       syncLogoSettings();
+      saveSelectedLabel();
     } else {
       saveSelectedLabel();
       syncLabelPicker();
@@ -862,6 +933,16 @@ document.getElementById("download-svg").addEventListener("click", () => {
 document.getElementById("print-pdf").addEventListener("click", () => {
   downloadPdf();
 });
+
+document.getElementById("save-project").addEventListener("click", () => {
+  saveProject();
+});
+
+document.getElementById("load-project").addEventListener("click", () => {
+  controls["project-file"].click();
+});
+
+controls["project-file"].addEventListener("change", loadProjectFile);
 
 document.getElementById("clear-disc-image").addEventListener("click", () => {
   clearImage("discImage", "disc-image");
