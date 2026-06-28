@@ -337,7 +337,7 @@ function sheetCopies() {
   });
 }
 
-function cropMarks(label, includeChamfer = false, gap = CROP_GAP, length = CROP_LEN) {
+function cropMarks(label, includeChamfer = false, gap = CROP_GAP, length = CROP_LEN, chamferStroke = "") {
   const left = label.x;
   const right = label.x + label.width;
   const top = label.y;
@@ -356,8 +356,9 @@ function cropMarks(label, includeChamfer = false, gap = CROP_GAP, length = CROP_
     .map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`)
     .join("");
 
+  const chamferStyle = chamferStroke ? ` style="stroke: ${chamferStroke};"` : "";
   const chamfer = includeChamfer
-    ? `<line x1="${label.x}" y1="${label.y + label.chamfer}" x2="${label.x + label.chamfer}" y2="${label.y}" />`
+    ? `<line x1="${label.x}" y1="${label.y + label.chamfer}" x2="${label.x + label.chamfer}" y2="${label.y}"${chamferStyle} />`
     : "";
 
   return `<g class="crop-marks">${lines}${chamfer}</g>`;
@@ -455,7 +456,8 @@ function renderDisc(label, copyIndex, labelConfig) {
 
   body += logoUse(label, "disc", labelConfig);
 
-  return `<clipPath id="${clipId}"><path d="${path}" /></clipPath><g>${body}</g>${cropMarks(label, true)}`;
+  const chamferStroke = colorLuminance(bg) < 0.45 ? "#ffffff" : "";
+  return `<clipPath id="${clipId}"><path d="${path}" /></clipPath><g>${body}</g>${cropMarks(label, true, CROP_GAP, CROP_LEN, chamferStroke)}`;
 }
 
 function renderCase(label, copyIndex, labelConfig) {
