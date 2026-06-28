@@ -5,12 +5,13 @@ const IMAGE_BLEED = 1;
 const CROP_GAP = 2;
 const SPINE_CROP_GAP = 0.8;
 const CROP_LEN = 2.5;
-const CROP_STROKE = 0.25 * PT_TO_MM;
+const SPINE_CROP_LEN = 1.1;
+const CROP_STROKE = 0.5 * PT_TO_MM;
 
 const labelSizes = {
-  disc: { width: 35.7, height: 52.7, chamfer: 1.5 },
+  disc: { width: 36.7, height: 53.7, chamfer: 1.5 },
   spine: { width: 59, height: 3.5 },
-  case: { width: 71, height: 52 },
+  case: { width: 71, height: 56 },
 };
 
 const state = {
@@ -315,7 +316,7 @@ function sheetCopies() {
   const caseXs = [8, 86];
   const caseYs = [8, 73, 138, 203];
   const discMainYs = [8, 73, 138, 203];
-  const discBottomXs = [86, 127, 168, 168];
+  const discBottomXs = [83, 124, 165, 165];
   const usedCaseRows = Math.ceil(count / 2);
   const spineBlock = { x: 8, y: caseYs[usedCaseRows] || 203, gap: 5.4 };
 
@@ -324,7 +325,7 @@ function sheetCopies() {
     const caseRow = Math.floor(index / 2);
     const caseX = caseXs[caseCol];
     const caseY = caseYs[caseRow];
-    const discX = index < 4 ? 168 : discBottomXs[index - 4];
+    const discX = index < 4 ? 165 : discBottomXs[index - 4];
     const discY = index < 4 ? discMainYs[index] : discMainYs[3];
 
     return {
@@ -335,20 +336,20 @@ function sheetCopies() {
   });
 }
 
-function cropMarks(label, includeChamfer = false, gap = CROP_GAP) {
+function cropMarks(label, includeChamfer = false, gap = CROP_GAP, length = CROP_LEN) {
   const left = label.x;
   const right = label.x + label.width;
   const top = label.y;
   const bottom = label.y + label.height;
   const marks = [
-    [left, top - gap, left, top - gap - CROP_LEN],
-    [left, bottom + gap, left, bottom + gap + CROP_LEN],
-    [right, top - gap, right, top - gap - CROP_LEN],
-    [right, bottom + gap, right, bottom + gap + CROP_LEN],
-    [left - gap, top, left - gap - CROP_LEN, top],
-    [right + gap, top, right + gap + CROP_LEN, top],
-    [left - gap, bottom, left - gap - CROP_LEN, bottom],
-    [right + gap, bottom, right + gap + CROP_LEN, bottom],
+    [left, top - gap, left, top - gap - length],
+    [left, bottom + gap, left, bottom + gap + length],
+    [right, top - gap, right, top - gap - length],
+    [right, bottom + gap, right, bottom + gap + length],
+    [left - gap, top, left - gap - length, top],
+    [right + gap, top, right + gap + length, top],
+    [left - gap, bottom, left - gap - length, bottom],
+    [right + gap, bottom, right + gap + length, bottom],
   ];
   const lines = marks
     .map(([x1, y1, x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`)
@@ -505,7 +506,7 @@ function renderSpine(label, labelConfig) {
 
   if (label.rotated) {
     const local = { x: 0, y: 0, width: labelSizes.spine.width, height: labelSizes.spine.height };
-    return `${cropMarks(label, false, SPINE_CROP_GAP)}
+    return `${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}
     <g transform="translate(${label.x + label.width} ${label.y}) rotate(90)">
       <rect x="0" y="0" width="${local.width}" height="${local.height}" fill="${bg}" />
       <text x="2" y="2.55" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
@@ -515,7 +516,7 @@ function renderSpine(label, labelConfig) {
   return `<g>
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />
     <text x="${label.x + 2}" y="${label.y + 2.55}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1" font-weight="bold">${escapeXml(spineText)}</text>
-  </g>${cropMarks(label, false, SPINE_CROP_GAP)}`;
+  </g>${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}`;
 }
 
 function renderSheet() {
