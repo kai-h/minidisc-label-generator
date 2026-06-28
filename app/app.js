@@ -334,11 +334,8 @@ function sheetCopies(labelConfigs = []) {
   const discMainYs = [8, 73, 138, 203];
   const discBottomXs = [83, 124, 165, 165];
   const usedCaseRows = Math.ceil(count / 2);
-  const caseBottoms = Array.from({ length: count }, (_, index) => {
-    const row = Math.floor(index / 2);
-    return caseYs[row] + caseHeightFor(labelConfigs[index]);
-  });
-  const spineY = caseBottoms.length ? Math.max(...caseBottoms) + 5 : caseYs[usedCaseRows] || 203;
+  const tallestCase = Math.max(...Array.from({ length: count }, (_, index) => caseHeightFor(labelConfigs[index])));
+  const spineY = count ? caseYs[usedCaseRows - 1] + tallestCase + 5 : caseYs[usedCaseRows] || 203;
   const spineBlock = { x: 8, y: spineY, gap: 5.4 };
 
   return Array.from({ length: count }, (_, index) => {
