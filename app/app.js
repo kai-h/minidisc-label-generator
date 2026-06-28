@@ -414,7 +414,7 @@ function logoUse(label, placement, labelConfig) {
   const width = 12;
   const height = 5;
   const corner = placement === "disc" && labelConfig.logoCorner === "bottom-left" ? "bottom-right" : labelConfig.logoCorner || "bottom-right";
-  const marginX = corner.endsWith("right") ? 0.35 : 1.2;
+  const marginX = corner.endsWith("right") ? -1.6 : 1.2;
   const marginY = 1.2;
   const x = corner.endsWith("left") ? label.x + marginX : label.x + label.width - width - marginX;
   const y = corner.startsWith("top") ? label.y + marginY : label.y + label.height - height - marginY;
