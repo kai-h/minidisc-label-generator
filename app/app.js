@@ -500,6 +500,7 @@ function renderCase(label, copyIndex, labelConfig) {
   const year = escapeXml(labelConfig.year);
   const tracks = labelConfig.tracks || [];
   const isJCard = labelConfig.caseFormat === "j-card";
+  const contentY = isJCard ? 1 : 0;
   const spineCopy = escapeXml(labelConfig.spineAuto ? `${labelConfig.album} : ${labelConfig.artist}` : labelConfig.spineFreeform);
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
@@ -507,25 +508,25 @@ function renderCase(label, copyIndex, labelConfig) {
   if (layout === "image") {
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), imageBleedBox(label));
   } else if (layout === "image-tracks") {
-    const img = { x: label.x + 5, y: label.y + 16, width: 27, height: 27 };
-    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
-    body += `<text x="${label.x + 5}" y="${label.y + 12.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.7" font-weight="bold">${artist} - ${year}</text>`;
+    const img = { x: label.x + 5, y: label.y + 16 + contentY, width: 27, height: 27 };
+    body += `<text x="${label.x + 5}" y="${label.y + 8 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 12.5 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.7" font-weight="bold">${artist} - ${year}</text>`;
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), img);
     tracks.slice(0, 13).forEach((line, index) => {
-      body += `<text x="${label.x + 36}" y="${label.y + 18 + index * 3}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
+      body += `<text x="${label.x + 36}" y="${label.y + 18 + contentY + index * 3}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.25">${escapeXml(line)}</text>`;
     });
   } else {
-    body += `<text x="${label.x + 5}" y="${label.y + 8}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="bold">${album}</text>`;
-    body += `<text x="${label.x + 5}" y="${label.y + 13}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="bold">${artist} - ${year}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 8 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="5.2" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 5}" y="${label.y + 13 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="3" font-weight="bold">${artist} - ${year}</text>`;
     tracks.slice(0, 13).forEach((line, index) => {
-      body += `<text x="${label.x + 5}" y="${label.y + 20 + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
+      body += `<text x="${label.x + 5}" y="${label.y + 20 + contentY + index * 3.2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.35">${escapeXml(line)}</text>`;
     });
   }
 
   if (layout === "image") {
-    body += `<rect x="${label.x + 4}" y="${label.y + 4}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
-    body += `<text x="${label.x + 6}" y="${label.y + 9.5}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="bold">${album}</text>`;
-    body += `<text x="${label.x + 6}" y="${label.y + 14}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
+    body += `<rect x="${label.x + 4}" y="${label.y + 4 + contentY}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
+    body += `<text x="${label.x + 6}" y="${label.y + 9.5 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="bold">${album}</text>`;
+    body += `<text x="${label.x + 6}" y="${label.y + 14 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
   }
 
   if (isJCard) {
