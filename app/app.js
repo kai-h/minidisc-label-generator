@@ -540,8 +540,12 @@ function pdfFontFileName(fontFamily) {
   return `${fontFamily.replace(/[^a-z0-9]/gi, "")}.ttf`;
 }
 
+function usedFontFamilies(labelConfigs) {
+  return [...new Set(labelConfigs.map((labelConfig) => labelConfig.font))];
+}
+
 async function registerPdfFonts(pdf, labelConfigs) {
-  const fontFamilies = [...new Set(labelConfigs.map((labelConfig) => labelConfig.font))];
+  const fontFamilies = usedFontFamilies(labelConfigs);
 
   await Promise.all(
     fontFamilies.map(async (fontFamily) => {
@@ -560,19 +564,103 @@ async function registerPdfFonts(pdf, labelConfigs) {
   );
 }
 
-async function prepareSvgForExport(svg) {
+async function embedSvgFonts(svg, labelConfigs) {
+  const rules = await Promise.all(
+    usedFontFamilies(labelConfigs).map(async (fontFamily) => {
+      const path = pdfFonts[fontFamily];
+      if (!path) return "";
+
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Unable to load SVG font: ${fontFamily}`);
+
+      const base64 = arrayBufferToBase64(await response.arrayBuffer());
+      return `@font-face { font-family: "${fontFamily}"; src: url("data:font/truetype;base64,${base64}") format("truetype"); font-weight: 400 900; font-style: normal; }`;
+    }),
+  );
+
+  const style = svg.querySelector("style") || document.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.textContent = `${rules.filter(Boolean).join("\n")}\n${style.textContent}`;
+  if (!style.parentNode) svg.insertBefore(style, svg.firstChild);
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
+
+async function imageHrefToDataUrl(href) {
+  if (href.startsWith("data:")) return href;
+
+  const response = await fetch(href);
+  if (!response.ok) throw new Error(`Unable to load image: ${href}`);
+  return blobToDataUrl(await response.blob());
+}
+
+async function rasterizeImageForPdf(dataUrl, imageNode) {
+  if (dataUrl.startsWith("data:image/svg")) return dataUrl;
+
+  const image = await loadImage(dataUrl);
+  const boxWidth = Number(imageNode.getAttribute("width"));
+  const boxHeight = Number(imageNode.getAttribute("height"));
+  const scale = 12;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(boxWidth * scale));
+  canvas.height = Math.max(1, Math.round(boxHeight * scale));
+
+  const context = canvas.getContext("2d");
+  const boxRatio = canvas.width / canvas.height;
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const preserve = imageNode.getAttribute("preserveAspectRatio") || "xMidYMid meet";
+  const shouldCover = preserve.includes("slice");
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+  let targetX = 0;
+  let targetY = 0;
+  let targetWidth = canvas.width;
+  let targetHeight = canvas.height;
+
+  if (shouldCover && imageRatio > boxRatio) {
+    sourceWidth = image.naturalHeight * boxRatio;
+    sourceX = (image.naturalWidth - sourceWidth) / 2;
+  } else if (shouldCover && imageRatio < boxRatio) {
+    sourceHeight = image.naturalWidth / boxRatio;
+    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  } else if (!shouldCover && imageRatio > boxRatio) {
+    targetHeight = canvas.width / imageRatio;
+    targetY = (canvas.height - targetHeight) / 2;
+  } else if (!shouldCover && imageRatio < boxRatio) {
+    targetWidth = canvas.height * imageRatio;
+    targetX = (canvas.width - targetWidth) / 2;
+  }
+
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, targetX, targetY, targetWidth, targetHeight);
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+
+async function prepareSvgForExport(svg, options = {}) {
   const clone = svg.cloneNode(true);
+  const { embedFonts = false, labelConfigs = [], rasterizeImages = false } = options;
   const images = Array.from(clone.querySelectorAll("image"));
+
+  if (embedFonts) await embedSvgFonts(clone, labelConfigs);
 
   await Promise.all(
     images.map(async (image) => {
       const href = image.getAttribute("href");
-      if (!href || href.startsWith("data:")) return;
+      if (!href) return;
 
-      const response = await fetch(href);
-      const dataUrl = await blobToDataUrl(await response.blob());
-      image.setAttribute("href", dataUrl);
-      image.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataUrl);
+      const dataUrl = await imageHrefToDataUrl(href);
+      const exportUrl = rasterizeImages ? await rasterizeImageForPdf(dataUrl, image) : dataUrl;
+      image.setAttribute("href", exportUrl);
+      image.setAttributeNS("http://www.w3.org/1999/xlink", "href", exportUrl);
     }),
   );
 
@@ -583,7 +671,8 @@ async function downloadSvg() {
   renderSheet();
   const svg = sheetHost.querySelector("svg");
   if (!svg) return;
-  const preparedSvg = await prepareSvgForExport(svg);
+  const labelConfigs = sheetCopies().map((_, index) => labelForCopy(index));
+  const preparedSvg = await prepareSvgForExport(svg, { embedFonts: true, labelConfigs });
   const contents = new XMLSerializer().serializeToString(preparedSvg);
   download("minidisc-labels.svg", contents, "image/svg+xml");
 }
@@ -614,7 +703,7 @@ async function downloadPdf() {
       hotfixes: ["px_scaling"],
     });
     await registerPdfFonts(pdf, labelConfigs);
-    const pdfSvg = await prepareSvgForExport(svg);
+    const pdfSvg = await prepareSvgForExport(svg, { rasterizeImages: true });
     await svg2pdf(pdfSvg, pdf, { x: 0, y: 0, width: PAGE.width, height: PAGE.height });
     downloadBlob("minidisc-labels.pdf", pdf.output("blob"));
   } catch (error) {
