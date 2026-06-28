@@ -17,6 +17,9 @@
             <h1>MiniDisc Labels</h1>
           </div>
         </div>
+        <div>
+          <h4>© 2026 Kai Howells.</h4>
+        </div>
         <div class="export-actions">
           <button id="print-pdf" class="primary" type="button" title="Export PDF">Export PDF</button>
           <button id="download-svg" type="button">Export SVG</button>
@@ -24,7 +27,6 @@
           <button id="load-project" type="button">Load Project</button>
           <input id="project-file" class="hidden" type="file" accept="application/json,.json" />
         </div>
-
         <section class="control-section">
           <h2>Sheet</h2>
           <label>
@@ -256,7 +258,9 @@
         <div id="sheet-host" class="sheet-host"></div>
       </section>
     </main>
-
+    <footer class="site-footer">
+      This app does not collect any data, and all processing is done in your browser. You can also download the source code and run it locally. Check out the source code and report issues on <a href="https://github.com/kai-h/minidisc-label-generator" target="_blank" rel="noopener noreferrer">GitHub</a>. If you found this useful, feel free to buy me a hot chocolate on <a href="https://ko-fi.com/kaiserh" target="_blank" rel="noopener noreferrer">Ko-fi</a>.
+    </footer>
     <script src="./vendor/jspdf.umd.min.js"></script>
     <script src="./vendor/svg2pdf.umd.min.js"></script>
     <script src="./app.js"></script>
