@@ -10,6 +10,7 @@ const SPINE_CROP_LEN = 1.1;
 const CROP_STROKE = 0.5 * PT_TO_MM;
 const J_CARD_SCORE_Y = 5;
 const CASE_ROW_GAP = 5;
+const SCALE_CHECK = { x: 8, y: 288, width: 50 };
 
 const labelSizes = {
   disc: { width: 36.7, height: 55.7, chamfer: 1.5 },
@@ -588,6 +589,21 @@ function renderSpine(label, labelConfig) {
   </g>${cropMarks(label, false, SPINE_CROP_GAP, SPINE_CROP_LEN)}`;
 }
 
+function renderScaleCheck() {
+  const { x, y, width } = SCALE_CHECK;
+  const ticks = Array.from({ length: 6 }, (_, index) => {
+    const tickX = x + index * 10;
+    const tickHeight = index === 0 || index === 5 ? 4 : 2.5;
+    return `<line x1="${tickX}" y1="${y}" x2="${tickX}" y2="${y - tickHeight}" />`;
+  }).join("");
+
+  return `<g class="scale-check">
+    <line x1="${x}" y1="${y}" x2="${x + width}" y2="${y}" />
+    ${ticks}
+    <text x="${x + width / 2}" y="${y - 5.2}" text-anchor="middle">5 cm</text>
+  </g>`;
+}
+
 function renderSheet() {
   const count = Number(controls.copies.value);
   const labelConfigs = Array.from({ length: count }, (_, index) => labelForCopy(index));
@@ -600,12 +616,15 @@ function renderSheet() {
     <style>
       .crop-marks line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; vector-effect: non-scaling-stroke; }
       .fold-marks line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; stroke-dasharray: 1.2 0.8; vector-effect: non-scaling-stroke; }
+      .scale-check line { stroke: #8f969c; stroke-width: ${CROP_STROKE}; vector-effect: non-scaling-stroke; }
+      .scale-check text { fill: #68707a; font-family: Inter, sans-serif; font-size: 2.5px; font-weight: 700; }
       text { dominant-baseline: alphabetic; }
     </style>
     <rect width="${PAGE.width}" height="${PAGE.height}" fill="#fff" />
     ${cases}
     ${spines}
     ${discs}
+    ${renderScaleCheck()}
   </svg>`;
   sheetHost.innerHTML = svg;
   return svg;
