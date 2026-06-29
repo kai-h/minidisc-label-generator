@@ -193,10 +193,19 @@ textarea {
   font-weight: 600;
 }
 
+.checkbox.hidden {
+  display: none;
+}
+
 .checkbox input {
   width: 16px;
   min-height: 16px;
   margin: 0;
+}
+
+.option-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .logo-options {

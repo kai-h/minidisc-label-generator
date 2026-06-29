@@ -170,10 +170,21 @@
             Layout
             <select id="case-layout">
               <option value="image">Image</option>
+              <option value="background-tracks">Background image + tracklisting</option>
               <option value="image-tracks" selected>Image + tracklisting</option>
               <option value="tracks">Tracklisting</option>
             </select>
           </label>
+          <div id="case-image-options" class="option-stack">
+            <label class="checkbox">
+              <input id="case-title-block" type="checkbox" checked />
+              <span>Show title block</span>
+            </label>
+            <label id="j-card-spine-info-option" class="checkbox hidden">
+              <input id="j-card-spine-info" type="checkbox" checked />
+              <span>Show J card spine info</span>
+            </label>
+          </div>
           <label>
             Case image
             <span class="file-control">

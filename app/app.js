@@ -172,6 +172,8 @@ function currentLabelFromControls() {
     discLayout: controls["disc-layout"].value,
     caseFormat: controls["case-format"].value,
     caseLayout: controls["case-layout"].value,
+    caseTitleBlock: controls["case-title-block"].checked,
+    jCardSpineInfo: controls["j-card-spine-info"].checked,
     tracks: textLines(controls.tracks.value),
     spineAuto: controls["spine-auto"].checked,
     spineFreeform: controls["spine-freeform"].value,
@@ -196,6 +198,8 @@ function createLabel(overrides = {}) {
     discLayout: "square",
     caseFormat: "case",
     caseLayout: "image-tracks",
+    caseTitleBlock: true,
+    jCardSpineInfo: true,
     tracks: ["01 Night Drive", "02 Glass Station", "03 Blue Hour", "04 Static Bloom", "05 Magnetic Sky", "06 Last Train"],
     spineAuto: true,
     spineFreeform: "BLUE HOUR : MIKA VALE",
@@ -250,6 +254,8 @@ function syncLabelControls() {
   controls["disc-layout"].value = labelConfig.discLayout;
   controls["case-format"].value = labelConfig.caseFormat || "case";
   controls["case-layout"].value = labelConfig.caseLayout;
+  controls["case-title-block"].checked = labelConfig.caseTitleBlock ?? true;
+  controls["j-card-spine-info"].checked = labelConfig.jCardSpineInfo ?? true;
   controls.tracks.value = labelConfig.tracks.join("\n");
   controls["spine-auto"].checked = labelConfig.spineAuto;
   controls["spine-freeform"].value = labelConfig.spineFreeform;
@@ -263,6 +269,7 @@ function syncLabelControls() {
   syncSpineFreeform();
   syncTracklisting();
   syncCaseFormatHint();
+  syncCaseOptions();
   syncImageClearButtons();
 }
 
@@ -507,12 +514,26 @@ function renderCase(label, copyIndex, labelConfig) {
   const tracks = labelConfig.tracks || [];
   const isJCard = labelConfig.caseFormat === "j-card";
   const contentY = isJCard ? 1 : 0;
+  const showTitleBlock = labelConfig.caseTitleBlock ?? true;
+  const showJCardSpineInfo = labelConfig.jCardSpineInfo ?? true;
   const spineCopy = escapeXml(labelConfig.spineAuto ? `${labelConfig.album} : ${labelConfig.artist}` : labelConfig.spineFreeform);
   let body = `<rect x="${label.x - BLEED}" y="${label.y - BLEED}" width="${label.width + BLEED * 2}" height="${label.height + BLEED * 2}" fill="${bg}" />
     <rect x="${label.x}" y="${label.y}" width="${label.width}" height="${label.height}" fill="${bg}" />`;
+  const titleBlock = () => `<rect x="${label.x + 4}" y="${label.y + 4 + contentY}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />
+    <text x="${label.x + 6}" y="${label.y + 9.5 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="bold">${album}</text>
+    <text x="${label.x + 6}" y="${label.y + 14 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
+  const textPanel = (x, y, width, height) => `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${bg}" opacity="0.88" />`;
 
   if (layout === "image") {
     body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), imageBleedBox(label));
+  } else if (layout === "background-tracks") {
+    body += imageFill(labelConfig.caseImage || previewImage(labelConfig, "case"), imageBleedBox(label));
+    body += titleBlock();
+    const panel = { x: label.x + 4, y: label.y + 20 + contentY, width: label.width - 8, height: 36 };
+    body += textPanel(panel.x, panel.y, panel.width, panel.height);
+    tracks.slice(0, 13).forEach((line, index) => {
+      body += `<text x="${panel.x + 2}" y="${panel.y + 5 + index * 2.35}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.1">${escapeXml(line)}</text>`;
+    });
   } else if (layout === "image-tracks") {
     const img = { x: label.x + 5, y: label.y + 16 + contentY, width: 27, height: 27 };
     body += `<text x="${label.x + 5}" y="${label.y + 8 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.6" font-weight="bold">${album}</text>`;
@@ -529,15 +550,15 @@ function renderCase(label, copyIndex, labelConfig) {
     });
   }
 
-  if (layout === "image") {
-    body += `<rect x="${label.x + 4}" y="${label.y + 4 + contentY}" width="${label.width - 8}" height="13" fill="${bg}" opacity="0.88" />`;
-    body += `<text x="${label.x + 6}" y="${label.y + 9.5 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="4.2" font-weight="bold">${album}</text>`;
-    body += `<text x="${label.x + 6}" y="${label.y + 14 + contentY}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.5">${artist} - ${year}</text>`;
+  if (layout === "image" && showTitleBlock) {
+    body += titleBlock();
   }
 
   if (isJCard) {
     body += `<rect x="${label.x}" y="${label.y}" width="${label.width}" height="${J_CARD_SCORE_Y}" fill="${bg}" />`;
-    body += `<text x="${label.x + 3}" y="${label.y + J_CARD_SCORE_Y / 2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${spineCopy}</text>`;
+    if (layout !== "image" || showJCardSpineInfo) {
+      body += `<text x="${label.x + 3}" y="${label.y + J_CARD_SCORE_Y / 2}" fill="${text}" font-family=${fontStack(labelConfig)} font-size="2.75" font-weight="bold" dominant-baseline="middle">${spineCopy}</text>`;
+    }
   }
 
   body += logoUse(label, "case", labelConfig);
@@ -602,6 +623,13 @@ function syncSpineFreeform() {
 
 function syncTracklisting() {
   document.getElementById("tracklisting-field").classList.toggle("hidden", controls["case-layout"].value === "image");
+}
+
+function syncCaseOptions() {
+  const isFullImage = controls["case-layout"].value === "image";
+  const isJCard = controls["case-format"].value === "j-card";
+  document.getElementById("case-image-options").classList.toggle("hidden", !isFullImage);
+  document.getElementById("j-card-spine-info-option").classList.toggle("hidden", !isFullImage || !isJCard);
 }
 
 function syncCaseFormatHint() {
@@ -876,6 +904,8 @@ function normalizeProjectLabel(labelConfig, index, legacyLogo = {}) {
   return createLabel({
     ...logoDefaults,
     ...labelConfig,
+    caseTitleBlock: labelConfig.caseTitleBlock ?? true,
+    jCardSpineInfo: labelConfig.jCardSpineInfo ?? true,
     tracks: Array.isArray(labelConfig.tracks) ? labelConfig.tracks : textLines(labelConfig.tracks || ""),
     previewIndex: Number.isFinite(Number(labelConfig.previewIndex)) ? Number(labelConfig.previewIndex) : index % previewArtwork.length,
   });
@@ -971,6 +1001,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
     if (el.id === "spine-auto") syncSpineFreeform();
     if (el.id === "case-layout") syncTracklisting();
     if (el.id === "case-format") syncCaseFormatHint();
+    if (el.id === "case-layout" || el.id === "case-format") syncCaseOptions();
     renderSheet();
   });
   el.addEventListener("change", () => {
@@ -984,6 +1015,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
     if (el.id === "spine-auto") syncSpineFreeform();
     if (el.id === "case-layout") syncTracklisting();
     if (el.id === "case-format") syncCaseFormatHint();
+    if (el.id === "case-layout" || el.id === "case-format") syncCaseOptions();
     renderSheet();
   });
 });
